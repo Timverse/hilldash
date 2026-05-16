@@ -1,27 +1,36 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { AdminSidebar } from "@/components/admin/sidebar"
+import { redirect } from "next/navigation"
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  let role = 'superadmin' // default fallback
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    if (profile) {
-      role = profile.role
-    }
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Use adminClient to bypass RLS and guarantee we get the user's true role from the database
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  
+  const allowedAdminRoles = ['owner', 'superadmin', 'warehouse_admin', 'admin']
+  const userRole = profile?.role || 'customer'
+
+  if (!allowedAdminRoles.includes(userRole)) {
+    // If the user is a customer or unauthorized, instantly redirect them to the storefront!
+    redirect('/')
   }
 
   return (
     <div className="flex min-h-screen bg-slate-100 font-sans antialiased">
       {/* Dynamic Role-Based Sidebar */}
-      <AdminSidebar role={role} />
+      <AdminSidebar role={userRole} />
 
       {/* Main content */}
       <main className="flex-1 ml-60 min-h-screen flex flex-col">
@@ -33,7 +42,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs font-black px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg border border-slate-200 uppercase tracking-wider">
-              Role: {role}
+              Role: {userRole}
             </span>
           </div>
         </div>
