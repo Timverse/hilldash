@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,6 +11,8 @@ import { updateOrderStatusAction } from "@/app/actions/orders"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { PackageCheck, ShoppingBag, CheckSquare, Square, ArrowRight, Truck, AlertCircle, FileText, Clock } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 type OrderItem = {
   id: string
@@ -45,9 +47,31 @@ const STATUS_FLOW: Record<string, { label: string; next: string | null; nextLabe
 }
 
 export function OrdersTable({ orders }: { orders: Order[] | any }) {
+  const router = useRouter()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [packedItems, setPackedItems] = useState<Record<string, boolean>>({})
+
+  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE ORDERS
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('realtime-orders-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        console.log('Realtime order update received:', payload)
+        router.refresh()
+        if (payload.eventType === 'INSERT') {
+          toast.success('🔔 New Order Placed! Live orders table updated.')
+        } else if (payload.eventType === 'UPDATE') {
+          toast.info('🔄 Order status updated in real time.')
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [router])
 
   const handleAdvance = async (orderId: string, nextStatus: string) => {
     setLoadingId(orderId)
