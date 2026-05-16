@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -89,7 +90,21 @@ export async function signup(formData: FormData) {
 
 export async function signInWithOAuthAction(provider: 'google' | 'apple') {
   const supabase = await createClient()
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+  // Dynamically get host from request headers to ensure correct Vercel deployment URL is used
+  const headersList = await headers()
+  const host = headersList.get('host')
+  const proto = headersList.get('x-forwarded-proto') || 'https'
+  
+  // Fallback chain: Vercel Host -> Env Variable -> sawaiom.vercel.app
+  let origin = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || 'https://sawaiom.vercel.app')
+
+  // If environment variable is still legacy hilldash, override with sawaiom or dynamic host
+  if (origin.includes('hilldash.vercel.app')) {
+    origin = host ? `${proto}://${host}` : 'https://sawaiom.vercel.app'
+  }
+
+  console.log(`Initiating OAuth for ${provider} with redirectTo: ${origin}/api/auth/callback`)
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
