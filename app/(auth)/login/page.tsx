@@ -9,9 +9,11 @@ import { ShoppingBag, ArrowRight, ShieldCheck, Sparkles, User, Mail, Lock, Phone
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string; tab?: string }>;
+  searchParams?: Promise<{ message?: string; tab?: string }> | { message?: string; tab?: string };
 }) {
-  const { message, tab } = await searchParams;
+  const resolvedParams = await Promise.resolve(searchParams || {});
+  const message = (resolvedParams as any).message;
+  const tab = (resolvedParams as any).tab;
   const currentTab = tab || 'signin';
 
   return (
