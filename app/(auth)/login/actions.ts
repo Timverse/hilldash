@@ -107,6 +107,10 @@ export async function signInWithOAuthAction(provider: 'google' | 'apple') {
   }
 }
 
+export async function signInWithGoogle() {
+  return signInWithOAuthAction('google')
+}
+
 export async function verifyOtpLogin(formData: FormData) {
   const supabase = await createClient()
   const adminClient = createAdminClient()

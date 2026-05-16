@@ -1,4 +1,4 @@
-import { login, signup, signInWithOAuthAction } from "./actions";
+import { login, signup, signInWithGoogle } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +74,7 @@ export default async function LoginPage({
           <CardContent className="pt-8 px-8 space-y-6">
             {/* SOCIAL OAUTH BUTTON: GOOGLE */}
             <div className="space-y-3">
-              <form action={() => signInWithOAuthAction('google')}>
+              <form action={signInWithGoogle}>
                 <Button variant="outline" className="w-full h-13 rounded-2xl bg-white border border-slate-200/80 hover:bg-slate-50/80 text-slate-700 font-bold text-base shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-3 group">
                   <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
