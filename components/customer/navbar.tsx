@@ -46,30 +46,43 @@ export function CustomerNavbar() {
       async (position) => {
         const { latitude, longitude } = position.coords
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`, {
+          // Use zoom=18 for maximum street/building level precision
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
             headers: { 'User-Agent': 'HillDash/1.0' }
           })
           const data = await res.json()
           
           const address = data.address || {}
-          const locality = address.suburb || address.neighbourhood || address.village || address.town || address.city || address.county || "Jowai, Meghalaya"
+          // Extract the most granular, precise street or neighbourhood name
+          const preciseLocality = 
+            address.road ||
+            address.neighbourhood || 
+            address.residential ||
+            address.suburb || 
+            address.quarter ||
+            address.hamlet ||
+            address.village || 
+            address.town || 
+            address.city || 
+            "Jowai, Meghalaya"
           
-          setLocationName(locality)
-          toast.success(`Location updated to ${locality}! 📍`)
+          setLocationName(preciseLocality)
+          toast.success(`Precise location set: ${preciseLocality}! 📍`)
         } catch (err) {
           console.error("Reverse geocoding error:", err)
           setLocationName("Jowai, Meghalaya")
-          toast.success("Location captured! 📍")
+          toast.success("Precise location captured! 📍")
         } finally {
           setLocating(false)
         }
       },
       (error) => {
         console.error("Geolocation error:", error)
-        toast.error("Could not capture location. Please check browser permissions.")
+        toast.error("Could not capture precise location. Please check browser permissions.")
         setLocating(false)
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      // Force fresh GPS fix with maximumAge: 0 and high accuracy
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
 
