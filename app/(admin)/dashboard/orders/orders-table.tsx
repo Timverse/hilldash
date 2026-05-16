@@ -17,13 +17,7 @@ type OrderItem = {
   quantity: number
   price_at_time: number
   product_id: string
-  products?: {
-    name: string
-    image_url?: string
-    batch_number?: string
-    expiry_date?: string
-    unit?: string
-  }
+  products?: any
 }
 
 type Order = {
@@ -36,7 +30,7 @@ type Order = {
   customer_name?: string
   customer_phone?: string
   delivery_address?: string
-  order_items?: OrderItem[]
+  order_items?: OrderItem[] | any
 }
 
 const STATUS_FLOW: Record<string, { label: string; next: string | null; nextLabel: string | null; badge: string }> = {
@@ -50,7 +44,7 @@ const STATUS_FLOW: Record<string, { label: string; next: string | null; nextLabe
   confirmed:        { label: "Confirmed",        next: "packed",           nextLabel: "Pack Order",      badge: "bg-indigo-100 text-indigo-700 border border-indigo-200" },
 }
 
-export function OrdersTable({ orders }: { orders: Order[] }) {
+export function OrdersTable({ orders }: { orders: Order[] | any }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [packedItems, setPackedItems] = useState<Record<string, boolean>>({})
@@ -81,7 +75,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
     setPackedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }))
   }
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
       <div className="bg-white border rounded-[2.5rem] p-16 flex flex-col items-center justify-center text-center shadow-sm">
         <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6 text-slate-400 shadow-inner">
@@ -112,14 +106,14 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => {
+            {orders.map((order: any) => {
               const flow = STATUS_FLOW[order.status] || STATUS_FLOW.pending
               const isLoading = loadingId === order.id
               const nameMatch = order.notes?.match(/Name: ([^\n]+)/)
               const phoneMatch = order.notes?.match(/Phone: ([^\n]+)/)
               const customerName = order.customer_name || nameMatch?.[1] || "Guest"
               const customerPhone = order.customer_phone || phoneMatch?.[1] || "-"
-              const itemCount = order.order_items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+              const itemCount = order.order_items?.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0) || 0
 
               return (
                 <TableRow key={order.id} className="hover:bg-slate-50/80 transition-colors">
@@ -147,9 +141,8 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                       size="sm"
                       onClick={() => {
                         setSelectedOrder(order)
-                        // Reset packed state for this order's items
                         const initialPacked: Record<string, boolean> = {}
-                        order.order_items?.forEach(i => { initialPacked[i.id] = false })
+                        order.order_items?.forEach((i: any) => { initialPacked[i.id] = false })
                         setPackedItems(initialPacked)
                       }}
                       className="rounded-xl font-bold gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 shadow-sm"
@@ -225,8 +218,15 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
 
               {/* Items Table */}
               <div className="py-4 max-h-[400px] overflow-y-auto pr-2 space-y-3">
-                {selectedOrder.order_items?.map((item) => {
+                {selectedOrder.order_items?.map((item: any) => {
                   const isPacked = !!packedItems[item.id]
+                  const productObj = Array.isArray(item.products) ? item.products[0] : item.products;
+                  const productName = productObj?.name || "Product Item";
+                  const productImg = productObj?.image_url;
+                  const productUnit = productObj?.unit || "Units";
+                  const productBatch = productObj?.batch_number;
+                  const productExpiry = productObj?.expiry_date;
+
                   return (
                     <div 
                       key={item.id} 
@@ -237,26 +237,26 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-white rounded-xl border border-slate-100 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
-                          {item.products?.image_url ? (
-                            <img src={item.products.image_url} alt={item.products?.name} className="w-full h-full object-cover" />
+                          {productImg ? (
+                            <img src={productImg} alt={productName} className="w-full h-full object-cover" />
                           ) : (
                             <ShoppingBag className="w-6 h-6 text-slate-300" />
                           )}
                         </div>
                         <div>
                           <h4 className={`font-bold text-base leading-none mb-1 ${isPacked ? 'text-slate-900 line-through opacity-80' : 'text-slate-900'}`}>
-                            {item.products?.name || "Product Item"}
+                            {productName}
                           </h4>
                           <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-1">
                             <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              Qty: {item.quantity} {item.products?.unit || 'Units'}
+                              Qty: {item.quantity} {productUnit}
                             </span>
                             <span>₹{item.price_at_time?.toFixed(2)} each</span>
                           </div>
-                          {item.products?.batch_number && (
+                          {productBatch && (
                             <p className="text-[10px] font-mono text-slate-400 mt-1">
-                              Batch: <span className="font-bold text-slate-600">{item.products.batch_number}</span> 
-                              {item.products.expiry_date && ` (Exp: ${format(new Date(item.products.expiry_date), 'MMM yyyy')})`}
+                              Batch: <span className="font-bold text-slate-600">{productBatch}</span> 
+                              {productExpiry && ` (Exp: ${format(new Date(productExpiry), 'MMM yyyy')})`}
                             </p>
                           )}
                         </div>
