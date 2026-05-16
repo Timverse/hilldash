@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -42,6 +43,7 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -63,15 +65,21 @@ export async function signup(formData: FormData) {
     redirect('/login?tab=signup&message=' + encodeURIComponent(error.message))
   }
 
-  // Ensure profile exists with customer role
+  // Ensure profile exists with customer role using adminClient to bypass RLS and include email
   if (authData?.user) {
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await adminClient.from('profiles').upsert({
       id: authData.user.id,
+      email: email,
       full_name: fullName,
       phone: phone,
       role: 'customer',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'id' })
+
+    if (profileError) {
+      console.error('Profile creation error on signup:', profileError)
+      redirect('/login?tab=signup&message=' + encodeURIComponent('Account created but failed to initialize profile: ' + profileError.message))
+    }
   }
 
   revalidatePath('/', 'layout')
@@ -80,6 +88,8 @@ export async function signup(formData: FormData) {
 
 export async function verifyOtpLogin(formData: FormData) {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
+
   const phone = formData.get('phone') as string
   const otp = formData.get('otp') as string
 
@@ -98,24 +108,34 @@ export async function verifyOtpLogin(formData: FormData) {
   if (error) {
     console.log('Native OTP not configured, using simulated OTP authentication fallback for phone:', phone)
     
-    const { data: existingProfiles } = await supabase.from('profiles').select('*').eq('phone', phone)
+    const { data: existingProfiles } = await adminClient.from('profiles').select('*').eq('phone', phone)
     let profile = existingProfiles?.[0]
 
     if (!profile) {
       const dummyEmail = `otp_${phone.replace(/[^0-9]/g, '')}@hilldash.com`
-      const { data: newAuth } = await supabase.auth.signUp({
+      const { data: newAuth, error: signUpError } = await supabase.auth.signUp({
         email: dummyEmail,
         password: `OtpPass_${Date.now()}`,
       })
 
+      if (signUpError) {
+        redirect('/login?tab=otp&message=' + encodeURIComponent(signUpError.message))
+      }
+
       if (newAuth?.user) {
-        await supabase.from('profiles').upsert({
+        const { error: profileError } = await adminClient.from('profiles').upsert({
           id: newAuth.user.id,
+          email: dummyEmail,
           full_name: `Customer (${phone})`,
           phone: phone,
           role: 'customer',
           updated_at: new Date().toISOString(),
-        })
+        }, { onConflict: 'id' })
+
+        if (profileError) {
+          console.error('Profile creation error on OTP login:', profileError)
+          redirect('/login?tab=otp&message=' + encodeURIComponent('Failed to initialize OTP profile: ' + profileError.message))
+        }
       }
     }
   }
