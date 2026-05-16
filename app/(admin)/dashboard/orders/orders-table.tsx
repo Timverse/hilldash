@@ -15,7 +15,7 @@ import { PackageCheck, ShoppingBag, CheckSquare, Square, ArrowRight, Truck, Aler
 type OrderItem = {
   id: string
   quantity: number
-  price_at_time: number
+  price: number
   product_id: string
   products?: any
 }
@@ -226,6 +226,7 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
                   const productUnit = productObj?.unit || "Units";
                   const productBatch = productObj?.batch_number;
                   const productExpiry = productObj?.expiry_date;
+                  const itemPrice = item.price || 0;
 
                   return (
                     <div 
@@ -251,7 +252,7 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
                             <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                               Qty: {item.quantity} {productUnit}
                             </span>
-                            <span>₹{item.price_at_time?.toFixed(2)} each</span>
+                            <span>₹{itemPrice.toFixed(2)} each</span>
                           </div>
                           {productBatch && (
                             <p className="text-[10px] font-mono text-slate-400 mt-1">
@@ -264,7 +265,7 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
 
                       <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
-                          <p className="font-black text-slate-900 text-base">₹{(item.quantity * item.price_at_time).toFixed(2)}</p>
+                          <p className="font-black text-slate-900 text-base">₹{(item.quantity * itemPrice).toFixed(2)}</p>
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Subtotal</span>
                         </div>
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors shadow-sm ${
