@@ -51,18 +51,6 @@ export function HomeHero() {
               </Button>
             </Link>
           </div>
-
-          <div className="mt-10 flex items-center gap-8 text-slate-300">
-            <div className="flex flex-col">
-              <span className="text-white font-bold text-2xl leading-none">15k+</span>
-              <span className="text-xs uppercase tracking-widest font-medium mt-1">Happy Customers</span>
-            </div>
-            <div className="w-px h-10 bg-slate-700" />
-            <div className="flex flex-col">
-              <span className="text-white font-bold text-2xl leading-none">500+</span>
-              <span className="text-xs uppercase tracking-widest font-medium mt-1">Fresh Products</span>
-            </div>
-          </div>
         </motion.div>
       </div>
     </section>
