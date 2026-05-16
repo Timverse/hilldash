@@ -7,28 +7,42 @@ export async function updateSession(request: NextRequest) {
     request: { headers: request.headers },
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, // USE ANON KEY
-    {
-      cookies: {
-        get(name: string) { return request.cookies.get(name)?.value },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
 
-  // This refreshes the session
-  const { data: { user } } = await supabase.auth.getUser()
+  // 1. If environment variables are missing on Vercel Edge, return early without crashing
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Supabase environment variables missing in Edge Middleware runtime')
+    return { supabase: null, response, user: null }
+  }
 
-  return { supabase, response, user }
+  try {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          get(name: string) { return request.cookies.get(name)?.value },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({ name, value, ...options })
+            response = NextResponse.next({ request: { headers: request.headers } })
+            response.cookies.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({ name, value: '', ...options })
+            response = NextResponse.next({ request: { headers: request.headers } })
+            response.cookies.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
+
+    // 2. Refresh session inside try-catch to prevent Edge runtime crashes
+    const { data: { user } } = await supabase.auth.getUser()
+
+    return { supabase, response, user }
+  } catch (error) {
+    console.error('Supabase middleware getUser error:', error)
+    return { supabase: null, response, user: null }
+  }
 }
