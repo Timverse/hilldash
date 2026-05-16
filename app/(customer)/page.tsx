@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Sparkles, Zap, ShieldCheck, Heart } from "lucide-react"
+import { ArrowRight, Sparkles, Zap, ShieldCheck, Heart, Clock } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { HomeHero } from "@/components/customer/home-hero"
 import { HomeBento } from "@/components/customer/home-bento"
@@ -18,21 +18,21 @@ export default async function CustomerHomepage() {
     .limit(12)
 
   return (
-    <div className="bg-white font-sans antialiased">
+    <div className="bg-white font-sans antialiased overflow-x-hidden">
       {/* Hero Section */}
       <HomeHero />
 
       {/* Trust Badges */}
       <section className="py-12 border-b bg-slate-50/50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border flex items-center justify-center text-primary shrink-0">
-                <Zap className="w-6 h-6" />
+                <Clock className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 leading-none">15 Min Delivery</h4>
-                <p className="text-slate-500 text-xs mt-1 font-medium">Faster than a heartbeat</p>
+                <h4 className="font-bold text-slate-900 leading-none">Flexible Time Slots</h4>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Choose your preferred window</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ export default async function CustomerHomepage() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 leading-none">Local Support</h4>
-                <p className="text-slate-500 text-xs mt-1 font-medium">Helping hill farmers</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Rooted in Meghalaya</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -71,7 +71,7 @@ export default async function CustomerHomepage() {
 
       {/* Featured Products */}
       <section className="py-24 bg-slate-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs font-bold mb-4">
@@ -83,13 +83,13 @@ export default async function CustomerHomepage() {
               </h2>
             </div>
             <Link href="/shop">
-              <Button variant="outline" className="rounded-full font-bold border-2 h-12 px-8 hover:bg-primary hover:text-white transition-all">
+              <Button variant="outline" className="rounded-full font-bold border-2 h-12 px-8 hover:bg-primary hover:text-white transition-all active:scale-95">
                 View All Products
               </Button>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {featuredProducts?.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -99,8 +99,8 @@ export default async function CustomerHomepage() {
 
       {/* App Download / CTA */}
       <section className="py-24">
-        <div className="container mx-auto px-4">
-          <div className="bg-slate-900 rounded-[3rem] p-12 md:p-24 relative overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+          <div className="bg-slate-900 rounded-[3rem] p-12 md:p-24 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/20 blur-[120px] -rotate-12 translate-x-1/2" />
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-8 leading-tight">
