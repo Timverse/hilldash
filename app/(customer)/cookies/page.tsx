@@ -4,8 +4,8 @@ export default function CookiesPage() {
   return (
     <StaticPage 
       title="Cookie Policy" 
-      subtitle="How we use cookies and similar technologies on HillDash."
-      lastUpdated="May 15, 2026"
+      subtitle="How we use cookies and similar technologies on Sawaïom."
+      lastUpdated="May 16, 2026"
     >
       <h2>What are Cookies?</h2>
       <p>
@@ -23,7 +23,7 @@ export default function CookiesPage() {
 
       <h2>Managing Cookies</h2>
       <p>
-        Most browsers allow you to control cookies through their settings. However, disabling essential cookies may affect your ability to use certain features of the HillDash platform, such as placing orders.
+        Most browsers allow you to control cookies through their settings. However, disabling essential cookies may affect your ability to use certain features of the Sawaïom platform, such as placing orders.
       </p>
 
       <h2>Third-Party Cookies</h2>

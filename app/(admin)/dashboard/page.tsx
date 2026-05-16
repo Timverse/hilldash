@@ -108,7 +108,7 @@ export default async function DashboardPage() {
                                 <ShoppingBag size={40} />
                             </div>
                             <h3 className="text-xl font-black text-slate-900 mb-2">No orders yet</h3>
-                            <p className="text-slate-500 text-sm max-w-sm leading-relaxed">When customers start ordering from HillDash, they will appear here in real-time.</p>
+                            <p className="text-slate-500 text-sm max-w-sm leading-relaxed">When customers start ordering from Sawaïom, they will appear here in real-time.</p>
                         </div>
                     ) : (
                         <Table>

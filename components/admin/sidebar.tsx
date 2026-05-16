@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   ShoppingBag, PackageCheck, Tags, MapPin,
-  Settings, LayoutDashboard, LogOut, ClipboardList, Bike
+  Settings, LayoutDashboard, LogOut, ClipboardList, Bike, Gift
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +21,7 @@ const storeItems = [
 
 const systemItems = [
   { href: "/dashboard/warehouses", label: "Hubs / Warehouses", icon: MapPin },
+  { href: "/dashboard/discounts", label: "Discounts & Offers", icon: Gift },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]
 
@@ -50,18 +51,21 @@ export function AdminSidebar({ role }: { role: string }) {
     if (item.href === "/dashboard/warehouses") {
       return role === "owner";
     }
+    if (item.href === "/dashboard/discounts") {
+      return role === "owner";
+    }
     return true;
   });
 
   return (
-    <aside className="w-60 bg-slate-800 flex flex-col fixed h-full z-20 shadow-xl">
+    <aside className="w-60 bg-slate-800 flex flex-col fixed h-full z-20 shadow-xl font-sans antialiased">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-slate-700">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow">
             <ShoppingBag className="w-4 h-4 text-white" />
           </div>
-          <span className="text-white font-bold text-base tracking-tight">HillDash</span>
+          <span className="text-white font-bold text-base tracking-tight">Sawaïom</span>
           <span className="text-emerald-400 text-[10px] font-bold bg-emerald-900/50 px-2 py-0.5 rounded uppercase tracking-wider">{role}</span>
         </Link>
       </div>

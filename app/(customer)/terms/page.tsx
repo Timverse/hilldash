@@ -4,22 +4,22 @@ export default function TermsPage() {
   return (
     <StaticPage 
       title="Terms of Service" 
-      subtitle="The rules and guidelines for using the HillDash platform."
-      lastUpdated="May 15, 2026"
+      subtitle="The rules and guidelines for using the Sawaïom platform."
+      lastUpdated="May 16, 2026"
     >
       <h2>1. Introduction</h2>
       <p>
-        Welcome to HillDash. These Terms of Service govern your use of our website and mobile application. By accessing or using our services, you agree to be bound by these terms.
+        Welcome to Sawaïom. These Terms of Service govern your use of our website and mobile application. By accessing or using our services, you agree to be bound by these terms.
       </p>
 
       <h2>2. Use of Services</h2>
       <p>
-        HillDash provides a platform for ordering groceries and daily essentials for delivery. You must be at least 18 years old to use our services. You are responsible for maintaining the confidentiality of your account information.
+        Sawaïom provides a platform for ordering groceries and daily essentials for delivery. You must be at least 18 years old to use our services. You are responsible for maintaining the confidentiality of your account information.
       </p>
 
       <h2>3. Ordering and Delivery</h2>
       <p>
-        Orders are subject to availability. We strive to deliver within the estimated timeframes, but delays may occur due to traffic, weather, or other factors. Delivery is currently limited to the Jowai Central area in Meghalaya.
+        Orders are subject to availability. We strive to deliver within the estimated timeframes, but delays may occur due to traffic, weather, or other factors. Delivery is currently limited to Jowai in Meghalaya.
       </p>
 
       <h2>4. Pricing and Payments</h2>
@@ -34,7 +34,7 @@ export default function TermsPage() {
 
       <h2>6. Limitation of Liability</h2>
       <p>
-        HillDash is not liable for any indirect, incidental, or consequential damages arising from your use of our services.
+        Sawaïom is not liable for any indirect, incidental, or consequential damages arising from your use of our services.
       </p>
 
       <h2>7. Changes to Terms</h2>

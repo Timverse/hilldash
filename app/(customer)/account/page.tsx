@@ -72,7 +72,7 @@ export default async function AccountPage() {
                     <div className="flex items-center gap-3">
                       <Sparkles className="w-5 h-5 text-purple-600" />
                       <div>
-                        <span className="text-sm font-black text-purple-900 block">HillDash Points</span>
+                        <span className="text-sm font-black text-purple-900 block">Sawaïom Points</span>
                         <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider">Worth ₹{pointsWorth}</span>
                       </div>
                     </div>
@@ -191,7 +191,7 @@ export default async function AccountPage() {
                     <Package className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-black text-slate-900 mb-2">No orders found</h3>
-                  <p className="text-slate-500 max-w-xs mx-auto mb-10 font-medium">You haven't placed any orders yet. Start shopping to see them here!</p>
+                  <p className="text-slate-50 max-w-xs mx-auto mb-10 font-medium">You haven't placed any orders yet. Start shopping to see them here!</p>
                   <Link href="/shop">
                     <Button className="rounded-full px-12 font-black h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20">
                       Start Shopping

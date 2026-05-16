@@ -35,7 +35,7 @@ export default function SuccessPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center py-20 px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center py-20 px-4 relative overflow-hidden font-sans antialiased">
       {/* Background Decorations */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <motion.div 
@@ -104,7 +104,7 @@ export default function SuccessPage() {
           className="mt-16 flex items-center justify-center gap-2 text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]"
         >
           <ShoppingBag className="w-4 h-4" />
-          Powered by HillDash Quick Commerce
+          Powered by Sawaïom Quick Commerce
         </motion.div>
       </div>
     </div>

@@ -18,7 +18,7 @@ export default async function CustomerHomepage() {
     .limit(12)
 
   return (
-    <div className="bg-white">
+    <div className="bg-white font-sans antialiased">
       {/* Hero Section */}
       <HomeHero />
 
@@ -32,7 +32,7 @@ export default async function CustomerHomepage() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 leading-none">15 Min Delivery</h4>
-                <p className="text-slate-500 text-xs mt-1">Faster than a heartbeat</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Faster than a heartbeat</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -41,7 +41,7 @@ export default async function CustomerHomepage() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 leading-none">Best Quality</h4>
-                <p className="text-slate-500 text-xs mt-1">Strict quality checks</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Strict quality checks</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ export default async function CustomerHomepage() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 leading-none">Local Support</h4>
-                <p className="text-slate-500 text-xs mt-1">Helping hill farmers</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">Helping hill farmers</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ export default async function CustomerHomepage() {
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 leading-none">Flash Deals</h4>
-                <p className="text-slate-500 text-xs mt-1">New offers every hour</p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">New offers every hour</p>
               </div>
             </div>
           </div>
@@ -104,9 +104,9 @@ export default async function CustomerHomepage() {
             <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/20 blur-[120px] -rotate-12 translate-x-1/2" />
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight mb-8 leading-tight">
-                Grocery shopping is better on the <span className="text-primary">HillDash</span> app.
+                Grocery shopping is better on the <span className="text-primary">Sawaïom</span> app.
               </h2>
-              <p className="text-xl text-slate-400 mb-12 leading-relaxed">
+              <p className="text-xl text-slate-400 mb-12 leading-relaxed font-medium">
                 Get exclusive app-only deals, real-time tracking, and a smoother checkout experience. Coming soon to iOS and Android.
               </p>
               <div className="flex flex-wrap gap-4">
@@ -124,4 +124,3 @@ export default async function CustomerHomepage() {
     </div>
   )
 }
-

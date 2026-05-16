@@ -74,7 +74,10 @@ export async function processCheckoutAction(formData: FormData) {
     console.log(`Applying ${pointsApplied} points for ₹${pointsDiscount} discount`)
   }
 
-  const finalTotal = Math.max(0, subtotal + deliveryFee - pointsDiscount)
+  // PROMOTIONAL DISCOUNT
+  const promoDiscount = parseFloat(formData.get('promo_discount') as string) || 0
+
+  const finalTotal = Math.max(0, subtotal + deliveryFee - pointsDiscount - promoDiscount)
 
   // Combine Points Discount into notes so Admin sees it prominently
   let finalNotes = notes || ""

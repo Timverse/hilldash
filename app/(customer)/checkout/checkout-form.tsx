@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { processCheckoutAction } from "@/app/actions/checkout"
 import { toast } from "sonner"
-import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles, Tag, Gift } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { calculateDistanceKm, calculateDeliveryFee } from "@/lib/utils/distance"
@@ -23,6 +23,23 @@ interface Warehouse {
   name: string;
 }
 
+interface Discount {
+  id: string
+  title: string
+  code: string | null
+  discount_type: string
+  discount_value: number
+  target_type: string
+  target_id: string | null
+  min_order_value: number
+  max_discount_amount: number | null
+}
+
+interface ProductMapping {
+  id: string
+  category_id: string | null
+}
+
 const TIME_SLOTS = [
   { id: "slot-1", label: "08:00 AM - 10:00 AM", startHour: 8 },
   { id: "slot-2", label: "10:00 AM - 12:00 PM", startHour: 10 },
@@ -32,7 +49,11 @@ const TIME_SLOTS = [
   { id: "slot-6", label: "06:00 PM - 08:00 PM", startHour: 18 },
 ]
 
-export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Warehouse | null; userPoints?: number }) {
+export function CheckoutForm({ 
+  warehouse, userPoints = 0, discounts = [], products = [] 
+}: { 
+  warehouse?: Warehouse | null; userPoints?: number; discounts?: Discount[]; products?: ProductMapping[] 
+}) {
   const router = useRouter()
   const { items, getCartTotal, clearCart } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -52,6 +73,45 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
   const [usePoints, setUsePoints] = useState(false)
   const pointsDiscount = usePoints ? Math.floor(userPoints / 1000) : 0
   const pointsApplied = usePoints ? pointsDiscount * 1000 : 0
+
+  // Amazon-Grade Coupon & Promotion State
+  const [selectedDiscountId, setSelectedDiscountId] = useState<string>("")
+  const [couponInput, setCouponInput] = useState<string>("")
+  const [couponError, setCouponError] = useState<string>("")
+
+  const selectedDiscount = discounts.find(d => d.id === selectedDiscountId)
+  const cartSubtotal = getCartTotal()
+
+  // Calculate promotional discount amount
+  let promoDiscountAmount = 0
+  if (selectedDiscount && cartSubtotal >= selectedDiscount.min_order_value) {
+    let applicableSubtotal = 0
+
+    if (selectedDiscount.target_type === 'all') {
+      applicableSubtotal = cartSubtotal
+    } else if (selectedDiscount.target_type === 'product') {
+      const matchingItems = items.filter(i => i.product_id === selectedDiscount.target_id)
+      applicableSubtotal = matchingItems.reduce((sum, i) => sum + (i.price * i.quantity), 0)
+    } else if (selectedDiscount.target_type === 'category') {
+      const matchingItems = items.filter(i => {
+        const prod = products.find(p => p.id === i.product_id)
+        return prod?.category_id === selectedDiscount.target_id
+      })
+      applicableSubtotal = matchingItems.reduce((sum, i) => sum + (i.price * i.quantity), 0)
+    }
+
+    if (applicableSubtotal > 0) {
+      if (selectedDiscount.discount_type === 'percentage') {
+        let calc = applicableSubtotal * (selectedDiscount.discount_value / 100)
+        if (selectedDiscount.max_discount_amount && calc > selectedDiscount.max_discount_amount) {
+          calc = selectedDiscount.max_discount_amount
+        }
+        promoDiscountAmount = calc
+      } else {
+        promoDiscountAmount = Math.min(applicableSubtotal, selectedDiscount.discount_value)
+      }
+    }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -141,6 +201,29 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
     )
   }
 
+  const handleApplyCustomCoupon = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setCouponError("")
+    if (!couponInput.trim()) return
+
+    const matched = discounts.find(d => d.code?.toLowerCase() === couponInput.trim().toLowerCase())
+    if (!matched) {
+      setCouponError("Invalid coupon code or expired promotion.")
+      toast.error("Invalid coupon code")
+      return
+    }
+
+    if (cartSubtotal < matched.min_order_value) {
+      setCouponError(`Minimum order value of ₹${matched.min_order_value} required for this coupon.`)
+      toast.error(`Minimum order value ₹${matched.min_order_value} required`)
+      return
+    }
+
+    setSelectedDiscountId(matched.id)
+    setCouponInput("")
+    toast.success(`Coupon ${matched.code} applied successfully!`)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
@@ -167,9 +250,9 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
     
-    // Combine Delivery Slot into notes so Admin sees it prominently in the database
     const userNotes = formData.get("notes") as string || ""
-    const combinedNotes = `Delivery Slot: ${selectedSlot}${userNotes ? ` | Note: ${userNotes}` : ''}`
+    const promoNote = selectedDiscount ? ` | Promo: ${selectedDiscount.title} (-₹${promoDiscountAmount.toFixed(2)})` : ''
+    const combinedNotes = `Delivery Slot: ${selectedSlot}${promoNote}${userNotes ? ` | Note: ${userNotes}` : ''}`
     formData.set("notes", combinedNotes)
 
     formData.append("latitude", location.lat.toString())
@@ -177,8 +260,9 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
     formData.append("delivery_fee", deliveryFee.toString())
     formData.append("distance_km", (distanceKm || 0).toString())
     formData.append("points_applied", pointsApplied.toString())
+    formData.append("promo_discount", promoDiscountAmount.toString())
     formData.append("cart", JSON.stringify(items))
-    formData.append("total", Math.max(0, getCartTotal() + deliveryFee - pointsDiscount).toString())
+    formData.append("total", Math.max(0, getCartTotal() + deliveryFee - pointsDiscount - promoDiscountAmount).toString())
 
     const result = await processCheckoutAction(formData)
 
@@ -187,7 +271,7 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
       setIsSubmitting(false)
     } else if (result.success) {
       clearCart()
-      toast.success(`Order placed successfully! 🎉 You earned ${result.earnedPoints || 10} HillDash Points!`)
+      toast.success(`Order placed successfully! 🎉 You earned ${result.earnedPoints || 10} Sawaïom Points!`)
       setTimeout(() => {
         router.push('/checkout/success')
       }, 1000)
@@ -213,7 +297,7 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
 
   const now = new Date()
   const tomorrow = addDays(now, 1)
-  const finalTotalPayable = Math.max(0, getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0) - pointsDiscount)
+  const finalTotalPayable = Math.max(0, getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0) - pointsDiscount - promoDiscountAmount)
 
   return (
     <div className="flex flex-col lg:flex-row gap-12 items-start font-sans antialiased">
@@ -237,7 +321,7 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Phone Number</label>
-                  <Input name="phone" required placeholder="9876543210" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
+                  <Input name="phone" required placeholder="8974319494" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
                 </div>
               </div>
 
@@ -389,7 +473,101 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
                 </div>
               </div>
 
-              {/* HILLDASH LOYALTY POINTS TOGGLE */}
+              {/* AMAZON-GRADE PROMOTIONAL DISCOUNTS & COUPONS */}
+              <div className="space-y-6 pt-6 border-t border-slate-100">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100 shadow-sm">
+                    <Gift className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Promotional Offers & Coupons</h3>
+                    <p className="text-slate-500 text-xs font-medium mt-0.5">Select an active festive deal or enter a custom coupon code</p>
+                  </div>
+                </div>
+
+                {/* Available Discounts List */}
+                {discounts.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {discounts.map(d => {
+                      const isSelected = selectedDiscountId === d.id
+                      const isEligible = cartSubtotal >= d.min_order_value
+                      return (
+                        <div 
+                          key={d.id}
+                          onClick={() => {
+                            if (!isEligible) {
+                              toast.error(`Minimum order value of ₹${d.min_order_value} required.`)
+                              return
+                            }
+                            setSelectedDiscountId(isSelected ? "" : d.id)
+                          }}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                            isSelected 
+                              ? 'bg-emerald-50/50 border-emerald-600 shadow-md shadow-emerald-600/10' 
+                              : !isEligible 
+                              ? 'bg-slate-50/50 border-slate-100 opacity-60 cursor-not-allowed' 
+                              : 'bg-white border-slate-200 hover:border-emerald-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className={`font-black text-sm mb-1 ${isSelected ? 'text-emerald-950' : 'text-slate-900'}`}>{d.title}</p>
+                              {d.code && (
+                                <span className="inline-flex items-center gap-1 font-mono font-bold text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 mb-1">
+                                  <Tag className="w-3 h-3" /> {d.code}
+                                </span>
+                              )}
+                              <p className="text-xs text-slate-500 font-medium">
+                                {d.discount_type === 'percentage' ? `${d.discount_value}% discount` : `₹${d.discount_value} flat discount`}
+                                {d.target_type === 'category' ? ' on specific category' : d.target_type === 'product' ? ' on specific product' : ' sitewide'}
+                              </p>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100/80 text-xs">
+                            <span className={isEligible ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                              {isEligible ? "Eligible Offer" : `Min order ₹${d.min_order_value}`}
+                            </span>
+                            {isSelected && <span className="font-black text-emerald-700">Applied</span>}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Custom Coupon Input */}
+                <div className="flex gap-3 max-w-md pt-2">
+                  <Input 
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value)
+                      setCouponError("")
+                    }}
+                    placeholder="Enter custom coupon code..."
+                    className="h-12 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 font-bold text-slate-900 uppercase tracking-wider"
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={handleApplyCustomCoupon}
+                    className="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-md"
+                  >
+                    Apply
+                  </Button>
+                </div>
+                {couponError && (
+                  <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 animate-shake pt-1">
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {couponError}
+                  </p>
+                )}
+              </div>
+
+              {/* SAWAÏOM LOYALTY POINTS TOGGLE */}
               <div className="space-y-4 pt-6 border-t border-slate-100">
                 <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-[2rem] border border-purple-100 shadow-sm">
                   <div className="flex items-center gap-4">
@@ -397,7 +575,7 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="font-black text-slate-900 text-lg tracking-tight">Use HillDash Points</h4>
+                      <h4 className="font-black text-slate-900 text-lg tracking-tight">Use Sawaïom Points</h4>
                       <p className="text-slate-500 text-xs font-medium mt-0.5">
                         You have <span className="font-bold text-purple-700">{userPoints}</span> points (Worth <span className="font-bold text-purple-700">₹{Math.floor(userPoints / 1000).toFixed(2)}</span> discount)
                       </p>
@@ -505,6 +683,15 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
                 )}
               </div>
 
+              {selectedDiscount && promoDiscountAmount > 0 && (
+                <div className="flex justify-between items-center text-emerald-300 text-sm font-bold pt-1">
+                  <span>Promo ({selectedDiscount.code || selectedDiscount.title})</span>
+                  <span className="bg-emerald-500/20 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+                    -₹{promoDiscountAmount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
               {usePoints && pointsDiscount > 0 && (
                 <div className="flex justify-between items-center text-purple-300 text-sm font-bold pt-1">
                   <span>Loyalty Discount</span>
@@ -538,7 +725,7 @@ export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Wareho
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <p className="text-[10px] text-white/60 font-medium leading-relaxed">
-                Your order is protected by <span className="text-white font-bold">HillDash Safety Guarantee</span>.
+                Your order is protected by <span className="text-white font-bold">Sawaïom Safety Guarantee</span>.
               </p>
             </div>
           </div>

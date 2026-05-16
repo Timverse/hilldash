@@ -41,9 +41,9 @@ export default async function RiderPortalPage() {
           </div>
           <div>
             <span className="font-extrabold text-xl tracking-tight text-white leading-none">
-              HillDash <span className="text-emerald-400">Rider</span>
+              Sawaïom <span className="text-emerald-400">Rider</span>
             </span>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Jowai Central Hub</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Mookyrdup Hub</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export default async function RiderPortalPage() {
               <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: '10s' }} />
             </div>
             <h3 className="text-lg font-bold text-white mb-1">No active dispatches</h3>
-            <p className="text-slate-400 text-sm max-w-xs mx-auto">Waiting for Jowai Central Hub to pack and assign new orders. Take a breather!</p>
+            <p className="text-slate-400 text-sm max-w-xs mx-auto">Waiting for Mookyrdup Hub to pack and assign new orders. Take a breather!</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -106,7 +106,7 @@ export default async function RiderPortalPage() {
               const nameMatch = order.notes?.match(/Name: ([^\n]+)/);
               const phoneMatch = order.notes?.match(/Phone: ([^\n]+)/);
               const customerName = order.customer_name || nameMatch?.[1] || "Guest";
-              const customerPhone = order.customer_phone || phoneMatch?.[1] || "+91 98765 43210";
+              const customerPhone = order.customer_phone || phoneMatch?.[1] || "+91 8974319494";
               const mapsUrl = `https://maps.google.com/?q=${order.delivery_lat || 25.4484},${order.delivery_lng || 92.2031}`;
 
               return (

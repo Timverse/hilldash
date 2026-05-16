@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "HillDash - Meghalaya Grocery Delivery",
-  description: "Scalable grocery delivery platform for Meghalaya.",
+  title: "Sawaïom — Rooted in Meghalaya",
+  description: "Premier quick-commerce and grocery delivery platform for Meghalaya.",
 };
 
 export default function RootLayout({

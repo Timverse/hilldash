@@ -19,6 +19,17 @@ export default async function CheckoutPage() {
     userPoints = profile?.points || 0
   }
 
+  // Fetch active discounts/promotions
+  const { data: discounts } = await supabase
+    .from('discounts')
+    .select('*')
+    .eq('is_active', true)
+
+  // Fetch products mapping for category discount calculations
+  const { data: products } = await supabase
+    .from('products')
+    .select('id, category_id')
+
   return (
     <div className="bg-slate-50/50 min-h-screen py-12 md:py-20 font-sans antialiased">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -33,7 +44,12 @@ export default async function CheckoutPage() {
           <p className="text-slate-500 text-lg mt-4 font-medium">Review your items and provide delivery details to complete your order.</p>
         </div>
         
-        <CheckoutForm warehouse={warehouse || null} userPoints={userPoints} />
+        <CheckoutForm 
+          warehouse={warehouse || null} 
+          userPoints={userPoints} 
+          discounts={discounts || []} 
+          products={products || []}
+        />
       </div>
     </div>
   )

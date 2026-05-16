@@ -43,7 +43,7 @@ export function HomeHero() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 tracking-tighter">
-            HillDash <br /><span className="text-primary italic">Freshness in a Dash</span>.
+            Sawaïom <br /><span className="text-primary italic">Rooted in Meghalaya</span>.
           </h1>
 
           <p className="text-xl text-slate-200 mb-10 leading-relaxed max-w-xl font-medium">

@@ -41,11 +41,11 @@ export default async function ProfilePage() {
               <User className="w-10 h-10" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900">{profile?.full_name || 'HillDash Member'}</h2>
+              <h2 className="text-2xl font-black text-slate-900">{profile?.full_name || 'Sawaïom Member'}</h2>
               <p className="text-slate-500 text-sm font-medium">{user.email}</p>
               <div className="mt-2 flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1 rounded-full w-fit border border-purple-200 text-xs font-bold shadow-sm">
                 <Sparkles className="w-3.5 h-3.5" />
-                {profile?.points || 0} HillDash Points
+                {profile?.points || 0} Sawaïom Points
               </div>
             </div>
           </div>
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1 flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-primary" /> Phone Number
                 </label>
-                <Input defaultValue={profile?.phone || ''} placeholder="9876543210" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary px-6 text-lg font-medium" />
+                <Input defaultValue={profile?.phone || ''} placeholder="8974319494" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary px-6 text-lg font-medium" />
               </div>
             </div>
 
@@ -70,7 +70,7 @@ export default async function ProfilePage() {
               <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1 flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-primary" /> Email Address (Read Only)
               </label>
-              <Input defaultValue={user.email} disabled className="h-14 rounded-2xl bg-slate-100 border-none text-slate-500 px-6 text-lg font-medium cursor-not-allowed" />
+              <Input defaultValue={user.email} disabled className="h-14 rounded-2xl bg-slate-100 border-none text-slate-50 px-6 text-lg font-medium cursor-not-allowed" />
             </div>
 
             <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-4">

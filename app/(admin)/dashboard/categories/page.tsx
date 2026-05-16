@@ -10,10 +10,10 @@ export default async function CategoriesPage() {
     .order('name')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans antialiased">
       <div>
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Categories</h1>
-        <p className="text-slate-500">Manage product categories for HillDash.</p>
+        <p className="text-slate-500">Manage product categories for Sawaïom.</p>
       </div>
 
       <CategoryTable categories={categories || []} />

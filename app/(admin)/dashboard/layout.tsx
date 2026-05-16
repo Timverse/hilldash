@@ -37,7 +37,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         {/* Top bar */}
         <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm shrink-0">
           <span className="text-slate-500 font-bold text-sm tracking-tight">
-            HillDash Admin Console
+            Sawaïom Admin Console
           </span>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

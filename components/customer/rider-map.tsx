@@ -63,7 +63,7 @@ export function RiderMap({ riderLat, riderLng, deliveryLat, deliveryLng, riderNa
   const deliveryPos: [number, number] = [deliveryLat, deliveryLng];
 
   return (
-    <div className="h-[320px] w-full rounded-[1.5rem] overflow-hidden border border-slate-800 shadow-inner relative z-10">
+    <div className="h-[320px] w-full rounded-[1.5rem] overflow-hidden border border-slate-800 shadow-inner relative z-10 font-sans antialiased">
       <MapContainer
         center={riderPos}
         zoom={16}
@@ -81,7 +81,7 @@ export function RiderMap({ riderLat, riderLng, deliveryLat, deliveryLng, riderNa
         <Marker position={riderPos} icon={createTruckIcon()}>
           <Popup className="rounded-xl overflow-hidden shadow-lg font-sans">
             <div className="p-1 text-slate-900">
-              <p className="font-black text-sm mb-0.5">🛵 {riderName || "HillDash Rider"}</p>
+              <p className="font-black text-sm mb-0.5">🛵 {riderName || "Sawaïom Rider"}</p>
               <p className="text-xs text-slate-500 font-medium">{riderPhone ? `Ph: ${riderPhone}` : "On the way to deliver your order!"}</p>
               <p className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-2 py-0.5 mt-2 font-mono font-bold inline-block">
                 GPS: {riderLat.toFixed(4)}, {riderLng.toFixed(4)}
