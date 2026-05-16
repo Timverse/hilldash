@@ -2,18 +2,21 @@
 
 import Link from "next/link"
 import { useCartStore } from "@/lib/store/cart"
-import { ShoppingCart, Menu, User, Search, MapPin } from "lucide-react"
+import { ShoppingCart, Menu, User, Search, MapPin, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 export function CustomerNavbar() {
   const items = useCartStore((state) => state.items)
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [locationName, setLocationName] = useState<string>("Jowai, Central")
+  const [locating, setLocating] = useState<boolean>(false)
 
   useEffect(() => {
     setMounted(true)
@@ -31,6 +34,44 @@ export function CustomerNavbar() {
 
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser")
+      return
+    }
+
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`, {
+            headers: { 'User-Agent': 'HillDash/1.0' }
+          })
+          const data = await res.json()
+          
+          const address = data.address || {}
+          const locality = address.suburb || address.neighbourhood || address.village || address.town || address.city || address.county || "Jowai, Meghalaya"
+          
+          setLocationName(locality)
+          toast.success(`Location updated to ${locality}! 📍`)
+        } catch (err) {
+          console.error("Reverse geocoding error:", err)
+          setLocationName("Jowai, Meghalaya")
+          toast.success("Location captured! 📍")
+        } finally {
+          setLocating(false)
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error)
+        toast.error("Could not capture location. Please check browser permissions.")
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
 
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0)
 
@@ -62,16 +103,23 @@ export function CustomerNavbar() {
             </div>
             <Input 
               placeholder="Search for groceries, snacks and more..." 
-              className="pl-10 h-11 bg-slate-100 border-none rounded-full focus-visible:ring-primary focus-visible:bg-white transition-all"
+              className="pl-10 h-11 bg-slate-100 border-none rounded-full focus-visible:ring-primary focus-visible:bg-white transition-all text-slate-900 font-medium"
             />
           </div>
 
           {/* Location - Desktop */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-            <MapPin className="w-4 h-4 text-primary" />
+          <div 
+            onClick={handleGetLocation}
+            className="hidden lg:flex items-center gap-2 px-3.5 py-2 bg-slate-50 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 group shadow-sm"
+          >
+            {locating ? (
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+            ) : (
+              <MapPin className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+            )}
             <div className="text-xs">
               <p className="text-slate-400 font-medium leading-none">Deliver to</p>
-              <p className="text-slate-900 font-bold leading-none mt-1">Jowai, Central</p>
+              <p className="text-slate-900 font-bold leading-none mt-1 capitalize">{locationName}</p>
             </div>
           </div>
 
