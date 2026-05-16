@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClipboardList, Clock } from 'lucide-react'
@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function OrdersPage() {
-  const supabase = await createClient()
+  const adminClient = createAdminClient()
 
-  const { data: orders, error } = await supabase
+  const { data: orders, error } = await adminClient
     .from('orders')
     .select(`
       id,
@@ -72,7 +72,7 @@ export default async function OrdersPage() {
       {/* Orders table */}
       {error ? (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 shadow-sm">
-          <p className="font-bold">Could not load orders.</p>
+          <p className="font-bold">Could not load orders: {error.message}</p>
           <p className="text-sm mt-1">Ensure the <code>orders</code> table exists in your database and run the required SQL migrations.</p>
         </div>
       ) : (
