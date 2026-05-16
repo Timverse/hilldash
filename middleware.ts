@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-    // 1. Refresh the session and get the user
-    const { supabase, response, user } = await updateSession(request)
+    // 1. Refresh the session and get the user (Edge Runtime compatible)
+    const { response, user } = await updateSession(request)
 
     // 2. Protect Admin Routes
     if (request.nextUrl.pathname === '/admin') {
@@ -15,24 +15,6 @@ export async function middleware(request: NextRequest) {
         if (!user) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
-
-        // Check role - allow owner, superadmin, and warehouse_admin
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        console.log('User role check:', { userId: user.id, role: profile?.role })
-
-        // Allow access for admin roles
-        const allowedRoles = ['owner', 'superadmin', 'warehouse_admin']
-        if (!profile || !allowedRoles.includes(profile.role)) {
-            console.log('Access denied, redirecting to home')
-            return NextResponse.redirect(new URL('/', request.url))
-        }
-
-        console.log('Access granted to dashboard')
     }
 
     return response
