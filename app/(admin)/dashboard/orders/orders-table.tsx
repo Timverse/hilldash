@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { updateOrderStatusAction } from "@/app/actions/orders"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { PackageCheck, ShoppingBag, CheckSquare, Square, ArrowRight, Truck, AlertCircle, FileText } from "lucide-react"
+import { PackageCheck, ShoppingBag, CheckSquare, Square, ArrowRight, Truck, AlertCircle, FileText, Clock } from "lucide-react"
 
 type OrderItem = {
   id: string
@@ -77,12 +77,12 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="bg-white border rounded-[2.5rem] p-16 flex flex-col items-center justify-center text-center shadow-sm">
+      <div className="bg-white border rounded-[2.5rem] p-16 flex flex-col items-center justify-center text-center shadow-sm font-sans antialiased">
         <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6 text-slate-400 shadow-inner">
           <ShoppingBag className="w-10 h-10" />
         </div>
         <h3 className="text-xl font-black text-slate-900 mb-2">No orders yet</h3>
-        <p className="text-slate-500 text-sm max-w-sm leading-relaxed">
+        <p className="text-slate-500 text-sm max-w-sm leading-relaxed font-medium">
           When customers place orders from the storefront, they will appear here instantly for warehouse packing and dispatch.
         </p>
       </div>
@@ -95,14 +95,14 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
         <Table>
           <TableHeader className="bg-slate-50/75 border-b border-slate-100">
             <TableRow>
-              <TableHead className="font-bold text-slate-700">Order ID</TableHead>
+              <TableHead className="font-bold text-slate-700 pl-6">Order ID</TableHead>
               <TableHead className="font-bold text-slate-700">Time</TableHead>
-              <TableHead className="font-bold text-slate-700">Customer Info</TableHead>
+              <TableHead className="font-bold text-slate-700">Customer Info & Delivery Slot</TableHead>
               <TableHead className="font-bold text-slate-700">Packing List</TableHead>
               <TableHead className="font-bold text-slate-700">Payment</TableHead>
               <TableHead className="text-right font-bold text-slate-700">Total</TableHead>
               <TableHead className="text-center font-bold text-slate-700">Status</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Actions</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 pr-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -115,27 +115,46 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
               const customerPhone = order.customer_phone || phoneMatch?.[1] || "-"
               const itemCount = order.order_items?.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0) || 0
 
+              // Parse Delivery Slot and User Note
+              const slotMatch = order.notes?.match(/Delivery Slot: ([^|]+)/);
+              const noteMatch = order.notes?.match(/Note: ([^\n]+)/);
+              const cleanNote = noteMatch ? noteMatch[1] : (slotMatch ? null : order.notes);
+
               return (
                 <TableRow key={order.id} className="hover:bg-slate-50/80 transition-colors">
-                  <TableCell className="font-mono text-xs font-bold text-slate-600">
+                  <TableCell className="font-mono text-xs font-bold text-slate-600 pl-6 py-4">
                     #{order.id.slice(0, 8).toUpperCase()}
                   </TableCell>
-                  <TableCell className="text-sm font-semibold text-slate-600 whitespace-nowrap">
+                  <TableCell className="text-sm font-semibold text-slate-600 whitespace-nowrap py-4">
                     {format(new Date(order.created_at), "dd MMM, hh:mm a")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4">
                     <p className="font-bold text-sm text-slate-900">{customerName}</p>
-                    <p className="text-xs font-semibold text-slate-500">{customerPhone}</p>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">{customerPhone}</p>
                     {order.delivery_address && (
-                      <p className="text-xs text-slate-600 mt-1 line-clamp-1 max-w-xs bg-slate-50 p-1 rounded border border-slate-100">{order.delivery_address}</p>
+                      <p className="text-xs text-slate-600 mt-1.5 line-clamp-1 max-w-xs bg-slate-50 p-1.5 rounded-lg border border-slate-100 font-medium">{order.delivery_address}</p>
                     )}
-                    {order.notes && order.notes !== '' && !order.notes.startsWith('Name:') && (
-                      <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 mt-1 inline-block font-medium shadow-sm">
-                        Note: {order.notes}
-                      </p>
+                    
+                    {/* Delivery Slot Badge */}
+                    {slotMatch && (
+                      <div className="mt-2">
+                        <Badge className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1.5 font-bold text-xs py-1 px-3 rounded-xl shadow-sm w-fit">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{slotMatch[1].trim()}</span>
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Customer Notes */}
+                    {cleanNote && cleanNote.trim() !== '' && !cleanNote.startsWith('Name:') && (
+                      <div className="mt-1.5">
+                        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 inline-block font-medium shadow-sm">
+                          Note: {cleanNote.trim()}
+                        </p>
+                      </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4">
                     <Button
                       variant="secondary"
                       size="sm"
@@ -151,18 +170,18 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
                       {itemCount} {itemCount === 1 ? 'Item' : 'Items'} (View List)
                     </Button>
                   </TableCell>
-                  <TableCell className="text-sm font-bold text-slate-600 capitalize">
+                  <TableCell className="text-sm font-bold text-slate-600 capitalize py-4">
                     {order.payment_method?.replace(/_/g, " ") || "Cash on Delivery"}
                   </TableCell>
-                  <TableCell className="text-right font-black text-slate-900 text-base">
+                  <TableCell className="text-right font-black text-slate-900 text-base py-4">
                     ₹{order.total?.toFixed(2)}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center py-4">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm ${flow.badge}`}>
                       {flow.label}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center pr-6 py-4">
                     <div className="flex items-center justify-center gap-2">
                       {flow.next && (
                         <Button

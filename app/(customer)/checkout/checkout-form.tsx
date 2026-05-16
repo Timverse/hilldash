@@ -5,12 +5,14 @@ import { useCartStore } from "@/lib/store/cart"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { processCheckoutAction } from "@/app/actions/checkout"
 import { toast } from "sonner"
-import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { calculateDistanceKm, calculateDeliveryFee } from "@/lib/utils/distance"
+import { format, addDays } from "date-fns"
 
 interface Warehouse {
   id: string;
@@ -19,6 +21,15 @@ interface Warehouse {
   radius_km: number;
   name: string;
 }
+
+const TIME_SLOTS = [
+  { id: "slot-1", label: "08:00 AM - 10:00 AM", startHour: 8 },
+  { id: "slot-2", label: "10:00 AM - 12:00 PM", startHour: 10 },
+  { id: "slot-3", label: "12:00 PM - 02:00 PM", startHour: 12 },
+  { id: "slot-4", label: "02:00 PM - 04:00 PM", startHour: 14 },
+  { id: "slot-5", label: "04:00 PM - 06:00 PM", startHour: 16 },
+  { id: "slot-6", label: "06:00 PM - 08:00 PM", startHour: 18 },
+]
 
 export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
   const router = useRouter()
@@ -31,9 +42,48 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [deliveryFee, setDeliveryFee] = useState<number>(0)
 
+  // BigBasket Delivery Time Slot State
+  const [selectedDay, setSelectedDay] = useState<"today" | "tomorrow">("today")
+  const [selectedSlot, setSelectedSlot] = useState<string>("")
+  const [availableTodaySlots, setAvailableTodaySlots] = useState<typeof TIME_SLOTS>([])
+
   useEffect(() => {
     setMounted(true)
+    
+    // Calculate available slots for today based on current hour
+    const now = new Date()
+    const currentHour = now.getHours()
+    
+    const todaySlots = TIME_SLOTS.filter(slot => currentHour < slot.startHour)
+    setAvailableTodaySlots(todaySlots)
+
+    // If no slots available today (e.g. after 8 PM), default to tomorrow
+    if (todaySlots.length === 0) {
+      setSelectedDay("tomorrow")
+      setSelectedSlot(`Tomorrow (${format(addDays(now, 1), "dd MMM")}), ${TIME_SLOTS[0].label}`)
+    } else {
+      setSelectedDay("today")
+      setSelectedSlot(`Today (${format(now, "dd MMM")}), ${todaySlots[0].label}`)
+    }
   }, [])
+
+  const handleDayChange = (day: "today" | "tomorrow") => {
+    setSelectedDay(day)
+    const now = new Date()
+    if (day === "today") {
+      if (availableTodaySlots.length > 0) {
+        setSelectedSlot(`Today (${format(now, "dd MMM")}), ${availableTodaySlots[0].label}`)
+      }
+    } else {
+      setSelectedSlot(`Tomorrow (${format(addDays(now, 1), "dd MMM")}), ${TIME_SLOTS[0].label}`)
+    }
+  }
+
+  const handleSlotSelect = (slotLabel: string) => {
+    const now = new Date()
+    const dayPrefix = selectedDay === "today" ? `Today (${format(now, "dd MMM")})` : `Tomorrow (${format(addDays(now, 1), "dd MMM")})`
+    setSelectedSlot(`${dayPrefix}, ${slotLabel}`)
+  }
 
   const getLocation = () => {
     setIsGettingLocation(true)
@@ -98,6 +148,11 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
       return
     }
 
+    if (!selectedSlot) {
+      toast.error("Please select a delivery time slot.")
+      return
+    }
+
     if (items.length === 0) {
       toast.error("Your cart is empty")
       return
@@ -105,6 +160,12 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
 
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
+    
+    // Combine Delivery Slot into notes so Admin sees it prominently in the database
+    const userNotes = formData.get("notes") as string || ""
+    const combinedNotes = `Delivery Slot: ${selectedSlot}${userNotes ? ` | Note: ${userNotes}` : ''}`
+    formData.set("notes", combinedNotes)
+
     formData.append("latitude", location.lat.toString())
     formData.append("longitude", location.lng.toString())
     formData.append("delivery_fee", deliveryFee.toString())
@@ -143,6 +204,9 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
     )
   }
 
+  const now = new Date()
+  const tomorrow = addDays(now, 1)
+
   return (
     <div className="flex flex-col lg:flex-row gap-12 items-start font-sans antialiased">
       {/* Form Section */}
@@ -152,7 +216,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
           <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
             <div className="space-y-6">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Delivery Details</h2>
@@ -182,7 +246,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                       <motion.span 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="text-emerald-600 flex items-center text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full"
+                        className="text-emerald-600 flex items-center text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200"
                       >
                         <CheckCircle2 className="w-3 h-3 mr-1.5" /> 
                         Verified Zone
@@ -232,15 +296,100 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                 )}
               </div>
 
-              <div className="space-y-2 pt-4">
+              {/* BIGBASKET DELIVERY TIME SLOT PICKER */}
+              <div className="space-y-6 pt-6 border-t border-slate-100">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0 border border-purple-100 shadow-sm">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Select Delivery Time Slot</h3>
+                    <p className="text-slate-500 text-xs font-medium mt-0.5">Choose a convenient 2-hour window (8 AM - 8 PM)</p>
+                  </div>
+                </div>
+
+                {/* Day Selection Tabs */}
+                <div className="flex gap-4 p-1.5 bg-slate-100 rounded-2xl w-full max-w-md shadow-inner">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleDayChange("today")}
+                    disabled={availableTodaySlots.length === 0}
+                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
+                      selectedDay === "today" 
+                        ? 'bg-white text-slate-900 shadow-md' 
+                        : 'text-slate-500 hover:text-slate-900 disabled:opacity-30'
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4 mr-2 text-primary" />
+                    Today ({format(now, "dd MMM")})
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleDayChange("tomorrow")}
+                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
+                      selectedDay === "tomorrow" 
+                        ? 'bg-white text-slate-900 shadow-md' 
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                    Tomorrow ({format(tomorrow, "dd MMM")})
+                  </Button>
+                </div>
+
+                {availableTodaySlots.length === 0 && selectedDay === "today" && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-2 shadow-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    Orders placed after 8 PM are scheduled for delivery starting tomorrow morning.
+                  </div>
+                )}
+
+                {/* Slots Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  {(selectedDay === "today" ? availableTodaySlots : TIME_SLOTS).map((slot) => {
+                    const isSelected = selectedSlot.includes(slot.label)
+                    return (
+                      <div
+                        key={slot.id}
+                        onClick={() => handleSlotSelect(slot.label)}
+                        className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-purple-50/50 border-purple-600 shadow-md shadow-purple-600/10' 
+                            : 'bg-slate-50/50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'
+                          }`}>
+                            {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                          </div>
+                          <span className={`font-bold text-sm ${isSelected ? 'text-purple-900' : 'text-slate-700'}`}>
+                            {slot.label}
+                          </span>
+                        </div>
+                        <Badge className={`border-none font-bold px-2.5 py-1 text-[10px] rounded-lg shadow-sm ${
+                          isSelected ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
+                        }`}>
+                          Available
+                        </Badge>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-6 border-t border-slate-100">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Delivery Instructions (Optional)</label>
                 <Input name="notes" placeholder="e.g. Near Big Church, blue gate" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 pt-6 border-t border-slate-100">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">Payment Method</h2>
@@ -248,7 +397,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
               
               <div className="relative group">
                 <label className="flex items-center space-x-4 p-6 border-2 border-primary bg-primary/5 rounded-[2rem] cursor-pointer transition-all shadow-lg shadow-primary/5">
-                  <div className="w-6 h-6 rounded-full border-4 border-primary flex items-center justify-center bg-white">
+                  <div className="w-6 h-6 rounded-full border-4 border-primary flex items-center justify-center bg-white shrink-0">
                     <div className="w-2 h-2 bg-primary rounded-full" />
                   </div>
                   <input type="radio" name="payment_method" value="COD" defaultChecked className="hidden" />
@@ -263,7 +412,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
 
           <Button 
             type="submit" 
-            disabled={isSubmitting || !location || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)} 
+            disabled={isSubmitting || !location || !selectedSlot || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)} 
             className="w-full h-20 text-2xl font-black bg-primary hover:bg-primary/90 text-white rounded-[2rem] shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50"
           >
             {isSubmitting ? (
@@ -313,11 +462,20 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                   <span className="text-primary font-bold text-xs italic">Calculated at checkout</span>
                 )}
               </div>
+
+              {selectedSlot && (
+                <div className="flex justify-between items-center text-white/60 text-xs font-medium pt-2 border-t border-white/5">
+                  <span>Delivery Slot</span>
+                  <span className="text-purple-300 font-bold bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30 text-[11px]">
+                    {selectedSlot.split(', ')[1] || selectedSlot}
+                  </span>
+                </div>
+              )}
               
-              <div className="pt-6 flex flex-col gap-2">
+              <div className="pt-6 flex flex-col gap-2 border-t border-white/10 mt-2">
                 <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Payable</p>
                 <div className="flex justify-between items-end">
-                  <span className="text-5xl font-black text-primary tracking-tighter">
+                  <span className="text-:5xl font-black text-primary tracking-tighter">
                     ₹{(getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0)).toFixed(2)}
                   </span>
                 </div>
