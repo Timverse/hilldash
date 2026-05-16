@@ -41,6 +41,52 @@ export async function login(formData: FormData) {
   redirect('/')
 }
 
+export async function signup(formData: FormData) {
+  const supabase = await createClient()
+  const adminClient = createAdminClient()
+
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const fullName = formData.get('full_name') as string
+  const phone = formData.get('phone') as string
+
+  const { data: authData, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        phone: phone,
+      }
+    }
+  })
+
+  if (error) {
+    redirect('/login?tab=signup&message=' + encodeURIComponent(error.message))
+  }
+
+  // Ensure profile exists with customer role using adminClient to bypass RLS and include email
+  if (authData?.user) {
+    const { error: profileError } = await adminClient.from('profiles').upsert({
+      id: authData.user.id,
+      email: email,
+      full_name: fullName,
+      phone: phone,
+      role: 'customer',
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' })
+
+    if (profileError) {
+      console.error('Profile creation error on signup:', profileError)
+      redirect('/login?tab=signup&message=' + encodeURIComponent('Account created but failed to initialize profile: ' + profileError.message))
+    }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/?signup=success')
+}
+
 export async function signInWithOAuthAction(provider: 'google' | 'apple') {
   const supabase = await createClient()
   const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
@@ -76,25 +122,20 @@ export async function verifyOtpLogin(formData: FormData) {
   const dummyEmail = `otp_${cleanPhoneNum}@hilldash.com`
   const dummyPass = `OtpPass_${cleanPhoneNum}`
 
-  // 1. Try native Supabase OTP verification if configured
   const { error } = await supabase.auth.verifyOtp({
     phone,
     token: otp,
     type: 'sms',
   })
 
-  // 2. Check if profile exists
   const { data: existingProfiles } = await adminClient.from('profiles').select('*').eq('phone', phone)
   let profile = existingProfiles?.[0]
 
   if (!profile) {
-    // NEW USER! Redirect to Name Capture onboarding screen
     redirect('/login?tab=onboarding&phone=' + encodeURIComponent(phone))
   }
 
-  // EXISTING USER! If native SMS failed (simulation mode), ensure auth session exists
   if (error && profile) {
-    console.log('Simulation mode: logging in existing user for phone:', phone)
     await supabase.auth.signInWithPassword({
       email: dummyEmail,
       password: dummyPass,
@@ -120,7 +161,6 @@ export async function completePhoneOnboarding(formData: FormData) {
   const dummyEmail = `otp_${cleanPhoneNum}@hilldash.com`
   const dummyPass = `OtpPass_${cleanPhoneNum}`
 
-  // 1. Create auth user
   const { data: newAuth, error: signUpError } = await supabase.auth.signUp({
     email: dummyEmail,
     password: dummyPass,
