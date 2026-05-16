@@ -10,14 +10,14 @@ export function HomeHero() {
   return (
     <section className="relative h-[600px] flex items-center overflow-hidden">
       {/* Background Image with Overlay */}
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-10000 hover:scale-110"
-        style={{ backgroundImage: "url('/images/logo.jpg')" }}
+        style={{ backgroundImage: "url('/images/hero-lady.png')" }}
       />
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/85 via-black/60 to-black/30" />
 
       <div className="container mx-auto px-4 z-20">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -27,11 +27,11 @@ export function HomeHero() {
             <Sparkles className="w-4 h-4 text-primary" />
             <span>Now delivering in Jowai Central</span>
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 tracking-tighter">
             HillDash <br /><span className="text-primary italic">Freshness in a Dash</span>.
           </h1>
-          
+
           <p className="text-xl text-slate-200 mb-10 leading-relaxed max-w-xl">
             Experience the finest local produce and daily essentials delivered within 15 minutes. Pure quality, lightning fast.
           </p>
@@ -39,8 +39,8 @@ export function HomeHero() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input 
-                placeholder="Search fresh fruits, veggies..." 
+              <Input
+                placeholder="Search fresh fruits, veggies..."
                 className="w-full h-14 pl-12 pr-4 bg-white/90 backdrop-blur-md border-none rounded-2xl text-lg shadow-2xl focus-visible:ring-2 focus-visible:ring-primary transition-all"
               />
             </div>
@@ -50,6 +50,18 @@ export function HomeHero() {
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
+          </div>
+
+          <div className="mt-10 flex items-center gap-8 text-slate-300">
+            <div className="flex flex-col">
+              <span className="text-white font-bold text-2xl leading-none"></span>
+              <span className="text-xs uppercase tracking-widest font-medium mt-1"></span>
+            </div>
+            <div className="w-px h-10 bg-slate-700" />
+            <div className="flex flex-col">
+              <span className="text-white font-bold text-2xl leading-none"></span>
+              <span className="text-xs uppercase tracking-widest font-medium mt-1"></span>
+            </div>
           </div>
         </motion.div>
       </div>
