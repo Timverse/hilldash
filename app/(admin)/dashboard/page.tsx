@@ -24,7 +24,7 @@ const STATUS_FLOW: Record<string, { label: string; badge: string }> = {
 export default async function DashboardPage() {
     const adminClient = createAdminClient();
 
-    // Fetch dynamic product count bypassing RLS and without hardcoded warehouse ID
+    // Fetch dynamic product count bypassing RLS
     const { count: productCount } = await adminClient
         .from('products')
         .select('*', { count: 'exact', head: true });
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Khublei, Admin!</h1>
-                    <p className="text-slate-500 font-medium mt-1">Here is what is happening at the Jowai Central Hub today.</p>
+                    <p className="text-slate-500 font-medium mt-1">Here is what is happening in Jowai today.</p>
                 </div>
                 <Link href="/dashboard/orders">
                     <Button className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-lg shadow-emerald-700/20 h-12 rounded-xl px-6">

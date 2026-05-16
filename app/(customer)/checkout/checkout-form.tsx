@@ -40,14 +40,13 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
     setLocationError("")
     
     if (!navigator.geolocation) {
-      // Fallback for browsers without geolocation
       const defaultLat = warehouse?.lat || 25.4508;
       const defaultLng = warehouse?.lng || 92.1868;
       setLocation({ lat: defaultLat, lng: defaultLng });
       setDistanceKm(0);
       setDeliveryFee(0);
       setIsGettingLocation(false);
-      toast.success("Default Jowai Central Hub delivery zone selected.");
+      toast.success("Default Jowai delivery zone selected.");
       return;
     }
 
@@ -74,16 +73,15 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
         }
       },
       (error) => {
-        // Fallback instantly if user blocks or GPS fails/times out
         const defaultLat = warehouse?.lat || 25.4508;
         const defaultLng = warehouse?.lng || 92.1868;
         setLocation({ lat: defaultLat, lng: defaultLng });
         setDistanceKm(0);
         setDeliveryFee(0);
         setIsGettingLocation(false);
-        toast.success("Location bypassed. Selected default Jowai Central Hub delivery zone.");
+        toast.success("Location bypassed. Selected default Jowai delivery zone.");
       },
-      { timeout: 5000 } // 5 second timeout to prevent infinite Locating loop
+      { timeout: 5000 }
     )
   }
 
@@ -91,7 +89,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
     e.preventDefault()
     
     if (!location) {
-      toast.error("Please verify your delivery zone before placing order.")
+      toast.error("Please verify your delivery location before placing order.")
       return
     }
 
@@ -208,9 +206,9 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                     {isGettingLocation ? (
                       <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Locating (Auto-fallback in 5s)...</>
                     ) : location ? (
-                      <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> Delivery Zone Verified</>
+                      <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> Delivery Location Verified</>
                     ) : (
-                      <><MapPin className="w-6 h-6 mr-3" /> Verify Delivery Zone (Click Here)</>
+                      <><MapPin className="w-6 h-6 mr-3" /> Tap for Delivery Location Verification</>
                     )}
                   </Button>
                 </div>
@@ -229,7 +227,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                 {!location && !locationError && (
                   <div className="flex items-center gap-2 px-1 text-slate-400 font-medium">
                     <Info className="w-4 h-4" />
-                    <p className="text-xs italic">Click above to instantly confirm your delivery feasibility in Jowai.</p>
+                    <p className="text-xs italic">Tap above to instantly confirm your delivery feasibility in Jowai.</p>
                   </div>
                 )}
               </div>
@@ -327,7 +325,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
             </div>
             
             <div className="mt-10 p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 bg-emerald-500/20 text-emerald-500 rounded-lg flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 bg-emerald-500/20 text-emerald-50 text-emerald-500 rounded-lg flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <p className="text-[10px] text-white/60 font-medium leading-relaxed">

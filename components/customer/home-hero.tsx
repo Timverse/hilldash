@@ -39,7 +39,7 @@ export function HomeHero() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/20 backdrop-blur-md border border-primary/30 rounded-full text-primary-foreground text-sm font-bold mb-6 shadow-sm">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span>Now delivering in Jowai Central Hub</span>
+            <span>Now delivering in Jowai</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.1] mb-6 tracking-tighter">

@@ -66,7 +66,7 @@ export default async function ShopPage({
                 {currentCategory ? currentCategory.name : <>All <span className="text-primary italic">Essentials</span></>}
               </h1>
               <p className="text-slate-500 mt-4 text-lg font-medium">
-                Showing {products?.length || 0} premium results from our Jowai Central Hub.
+                Showing {products?.length || 0} premium results from Jowai.
               </p>
             </div>
             
