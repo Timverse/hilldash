@@ -39,12 +39,11 @@ export async function processCheckoutAction(formData: FormData) {
   const lat = parseFloat(formData.get('latitude') as string)
   const lng = parseFloat(formData.get('longitude') as string)
   const cartData = JSON.parse(formData.get('cart') as string)
-  const clientTotal = parseFloat(formData.get('total') as string)
 
-  console.log('Form data:', { name, phone, address, lat, lng, clientTotal, cartItemCount: cartData.length })
+  console.log('Form data:', { name, phone, address, lat, lng, cartItemCount: cartData.length })
 
   if (!lat || !lng) {
-    return { error: 'Location is required. Please enable location services.' }
+    return { error: 'Location is required. Please verify delivery location.' }
   }
 
   // Calculate distance server-side
@@ -58,9 +57,30 @@ export async function processCheckoutAction(formData: FormData) {
   // Calculate delivery fee server-side to prevent tampering
   const deliveryFee = calculateDeliveryFee(distance)
   
-  // Calculate subtotal from cart items directly or use client total minus fee
+  // Calculate subtotal from cart items directly
   const subtotal = cartData.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
-  const finalTotal = subtotal + deliveryFee
+
+  // LOYALTY POINTS SYSTEM: 1000 points = ₹1 discount
+  let pointsApplied = parseInt(formData.get('points_applied') as string) || 0
+  let pointsDiscount = 0
+
+  if (user && pointsApplied > 0) {
+    const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single()
+    const currentPoints = profile?.points || 0
+    if (pointsApplied > currentPoints) {
+      pointsApplied = currentPoints
+    }
+    pointsDiscount = pointsApplied / 1000
+    console.log(`Applying ${pointsApplied} points for ₹${pointsDiscount} discount`)
+  }
+
+  const finalTotal = Math.max(0, subtotal + deliveryFee - pointsDiscount)
+
+  // Combine Points Discount into notes so Admin sees it prominently
+  let finalNotes = notes || ""
+  if (pointsDiscount > 0) {
+    finalNotes += `${finalNotes ? ' | ' : ''}Loyalty Discount: ₹${pointsDiscount.toFixed(2)} (${pointsApplied} Points Applied)`
+  }
 
   // Create Order with correct column names
   const orderPayload = {
@@ -76,7 +96,7 @@ export async function processCheckoutAction(formData: FormData) {
     total: finalTotal,
     status: 'pending',
     payment_method: paymentMethod || 'COD',
-    notes: notes || '',
+    notes: finalNotes,
     warehouse_id: WAREHOUSE_ID
   }
 
@@ -131,14 +151,27 @@ export async function processCheckoutAction(formData: FormData) {
         .update({ stock: product.stock - item.quantity })
         .eq('id', item.product_id)
       console.log(`Stock updated for product ${item.product_id}: ${product.stock} -> ${product.stock - item.quantity}`)
-    } else {
-      console.warn(`Insufficient stock for product ${item.product_id}`)
     }
+  }
+
+  // EARN RANDOM LOYALTY POINTS (1-100 with 0.001 probability of 100)
+  let earnedPoints = 0
+  if (user) {
+    const isJackpot = Math.random() < 0.001
+    earnedPoints = isJackpot ? 100 : Math.floor(Math.random() * 100) + 1
+
+    const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single()
+    const currentPoints = profile?.points || 0
+    const newPoints = currentPoints - pointsApplied + earnedPoints
+    
+    await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id)
+    console.log(`Updated points for user ${user.id}: ${currentPoints} - ${pointsApplied} + ${earnedPoints} = ${newPoints}`)
   }
 
   revalidatePath('/dashboard', 'page')
   revalidatePath('/dashboard/orders', 'page')
+  revalidatePath('/account', 'page')
   
   console.log('Order created successfully:', order.id)
-  return { success: true, orderId: order.id }
+  return { success: true, orderId: order.id, earnedPoints }
 }

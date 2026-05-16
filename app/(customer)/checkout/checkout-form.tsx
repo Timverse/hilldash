@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { processCheckoutAction } from "@/app/actions/checkout"
 import { toast } from "sonner"
-import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { calculateDistanceKm, calculateDeliveryFee } from "@/lib/utils/distance"
@@ -31,7 +32,7 @@ const TIME_SLOTS = [
   { id: "slot-6", label: "06:00 PM - 08:00 PM", startHour: 18 },
 ]
 
-export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
+export function CheckoutForm({ warehouse, userPoints = 0 }: { warehouse?: Warehouse | null; userPoints?: number }) {
   const router = useRouter()
   const { items, getCartTotal, clearCart } = useCartStore()
   const [mounted, setMounted] = useState(false)
@@ -46,6 +47,11 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
   const [selectedDay, setSelectedDay] = useState<"today" | "tomorrow">("today")
   const [selectedSlot, setSelectedSlot] = useState<string>("")
   const [availableTodaySlots, setAvailableTodaySlots] = useState<typeof TIME_SLOTS>([])
+
+  // Loyalty Points State
+  const [usePoints, setUsePoints] = useState(false)
+  const pointsDiscount = usePoints ? Math.floor(userPoints / 1000) : 0
+  const pointsApplied = usePoints ? pointsDiscount * 1000 : 0
 
   useEffect(() => {
     setMounted(true)
@@ -170,8 +176,9 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
     formData.append("longitude", location.lng.toString())
     formData.append("delivery_fee", deliveryFee.toString())
     formData.append("distance_km", (distanceKm || 0).toString())
+    formData.append("points_applied", pointsApplied.toString())
     formData.append("cart", JSON.stringify(items))
-    formData.append("total", (getCartTotal() + deliveryFee).toString())
+    formData.append("total", Math.max(0, getCartTotal() + deliveryFee - pointsDiscount).toString())
 
     const result = await processCheckoutAction(formData)
 
@@ -180,7 +187,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
       setIsSubmitting(false)
     } else if (result.success) {
       clearCart()
-      toast.success("Order placed successfully! 🎉")
+      toast.success(`Order placed successfully! 🎉 You earned ${result.earnedPoints || 10} HillDash Points!`)
       setTimeout(() => {
         router.push('/checkout/success')
       }, 1000)
@@ -206,6 +213,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
 
   const now = new Date()
   const tomorrow = addDays(now, 1)
+  const finalTotalPayable = Math.max(0, getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0) - pointsDiscount)
 
   return (
     <div className="flex flex-col lg:flex-row gap-12 items-start font-sans antialiased">
@@ -381,6 +389,40 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                 </div>
               </div>
 
+              {/* HILLDASH LOYALTY POINTS TOGGLE */}
+              <div className="space-y-4 pt-6 border-t border-slate-100">
+                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-[2rem] border border-purple-100 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-600/20 shrink-0">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 text-lg tracking-tight">Use HillDash Points</h4>
+                      <p className="text-slate-500 text-xs font-medium mt-0.5">
+                        You have <span className="font-bold text-purple-700">{userPoints}</span> points (Worth <span className="font-bold text-purple-700">₹{Math.floor(userPoints / 1000).toFixed(2)}</span> discount)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {usePoints && (
+                      <Badge className="bg-purple-600 text-white font-bold px-3 py-1 text-xs rounded-xl shadow-sm">
+                        -₹{pointsDiscount.toFixed(2)}
+                      </Badge>
+                    )}
+                    <Switch 
+                      checked={usePoints} 
+                      onCheckedChange={setUsePoints} 
+                      disabled={userPoints < 1000} 
+                    />
+                  </div>
+                </div>
+                {userPoints < 1000 && (
+                  <p className="text-[11px] text-slate-400 italic px-2">
+                    * Minimum 1,000 points required to redeem a discount (1,000 points = ₹1). Earn points on every order!
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-2 pt-6 border-t border-slate-100">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Delivery Instructions (Optional)</label>
                 <Input name="notes" placeholder="e.g. Near Big Church, blue gate" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
@@ -418,7 +460,7 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
             {isSubmitting ? (
               <><Loader2 className="w-8 h-8 mr-3 animate-spin" /> Processing Order...</>
             ) : (
-              `Place Order • ₹${(getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0)).toFixed(2)}`
+              `Place Order • ₹${finalTotalPayable.toFixed(2)}`
             )}
           </Button>
 
@@ -463,6 +505,15 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
                 )}
               </div>
 
+              {usePoints && pointsDiscount > 0 && (
+                <div className="flex justify-between items-center text-purple-300 text-sm font-bold pt-1">
+                  <span>Loyalty Discount</span>
+                  <span className="bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30">
+                    -₹{pointsDiscount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
               {selectedSlot && (
                 <div className="flex justify-between items-center text-white/60 text-xs font-medium pt-2 border-t border-white/5">
                   <span>Delivery Slot</span>
@@ -475,8 +526,8 @@ export function CheckoutForm({ warehouse }: { warehouse?: Warehouse | null }) {
               <div className="pt-6 flex flex-col gap-2 border-t border-white/10 mt-2">
                 <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Payable</p>
                 <div className="flex justify-between items-end">
-                  <span className="text-:5xl font-black text-primary tracking-tighter">
-                    ₹{(getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0)).toFixed(2)}
+                  <span className="text-5xl font-black text-primary tracking-tighter">
+                    ₹{finalTotalPayable.toFixed(2)}
                   </span>
                 </div>
               </div>

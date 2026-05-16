@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { User, Package, MapPin, Heart, Settings, LogOut, ChevronRight, CreditCard, Clock, Star } from 'lucide-react'
+import { User, Package, MapPin, Heart, Settings, LogOut, ChevronRight, CreditCard, Clock, Star, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 export const dynamic = 'force-dynamic'
@@ -30,8 +30,11 @@ export default async function AccountPage() {
     .order('created_at', { ascending: false })
     .limit(3)
 
+  const userPoints = profile?.points || 0
+  const pointsWorth = (userPoints / 1000).toFixed(2)
+
   return (
-    <div className="bg-slate-50/50 min-h-screen py-12">
+    <div className="bg-slate-50/50 min-h-screen py-12 font-sans antialiased">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -65,17 +68,20 @@ export default async function AccountPage() {
                 <p className="text-slate-400 text-sm font-medium mb-8">{user.email}</p>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center justify-between p-5 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-100 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-bold text-slate-700">HillDash Points</span>
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <span className="text-sm font-black text-purple-900 block">HillDash Points</span>
+                        <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider">Worth ₹{pointsWorth}</span>
+                      </div>
                     </div>
-                    <span className="text-primary font-black">1240</span>
+                    <span className="text-purple-700 font-black text-2xl">{userPoints}</span>
                   </div>
                 </div>
 
                 <Link href="/account/profile" className="block mt-8">
-                  <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold h-12">
+                  <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold h-12 shadow-lg shadow-slate-900/10">
                     <Settings className="w-4 h-4 mr-2" />
                     Account Settings
                   </Button>
@@ -185,7 +191,7 @@ export default async function AccountPage() {
                     <Package className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-black text-slate-900 mb-2">No orders found</h3>
-                  <p className="text-slate-500 max-w-xs mx-auto mb-10">You haven't placed any orders yet. Start shopping to see them here!</p>
+                  <p className="text-slate-500 max-w-xs mx-auto mb-10 font-medium">You haven't placed any orders yet. Start shopping to see them here!</p>
                   <Link href="/shop">
                     <Button className="rounded-full px-12 font-black h-14 text-lg bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20">
                       Start Shopping
@@ -200,4 +206,3 @@ export default async function AccountPage() {
     </div>
   )
 }
-
