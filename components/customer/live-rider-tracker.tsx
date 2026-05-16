@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Truck, MapPin, Navigation, Radio, AlertCircle } from 'lucide-react'
+import { Truck, Radio, AlertCircle } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+const RiderMap = dynamic(() => import('./rider-map').then(m => m.RiderMap), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[320px] w-full rounded-[1.5rem] bg-slate-950 border border-slate-800 flex flex-col items-center justify-center text-slate-500 font-medium shadow-inner gap-3">
+      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <span>Loading high-precision satellite tracking radar...</span>
+    </div>
+  )
+})
 
 interface LiveRiderTrackerProps {
   orderId: string;
@@ -37,25 +48,31 @@ export function LiveRiderTracker({
   riderName,
   riderPhone
 }: LiveRiderTrackerProps) {
-  const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(
-    initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
-  );
+  // Fallback coordinates for Jowai, Meghalaya if missing
+  const destLat = deliveryLat || 25.4484;
+  const destLng = deliveryLng || 92.2016;
+  
+  // Default rider position slightly away from destination if not active yet
+  const [riderPos, setRiderPos] = useState<{ lat: number; lng: number }>({
+    lat: initialLat || 25.4450,
+    lng: initialLng || 92.2000
+  });
+
   const [liveDistance, setLiveDistance] = useState<number | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    if (riderPos && deliveryLat && deliveryLng) {
-      const dist = calculateDistance(riderPos.lat, riderPos.lng, deliveryLat, deliveryLng);
+    if (riderPos && destLat && destLng) {
+      const dist = calculateDistance(riderPos.lat, riderPos.lng, destLat, destLng);
       setLiveDistance(dist);
     }
-  }, [riderPos, deliveryLat, deliveryLng]);
+  }, [riderPos, destLat, destLng]);
 
   useEffect(() => {
     if (status === 'delivered' || status === 'cancelled') return;
 
     const supabase = createClient();
     
-    // Subscribe to real-time updates on the orders table
     const channel = supabase
       .channel(`tracking_${orderId}`)
       .on(
@@ -120,39 +137,20 @@ export function LiveRiderTracker({
         )}
       </div>
 
-      {/* Visual Radar / Map Simulator UI */}
-      <div className="bg-slate-950 rounded-[1.5rem] p-6 border border-slate-800/80 relative overflow-hidden flex flex-col items-center justify-center min-h-[220px] shadow-inner">
-        {/* Radar Rings */}
-        <div className="absolute w-72 h-72 rounded-full border border-emerald-500/20 animate-ping pointer-events-none" style={{ animationDuration: '4s' }} />
-        <div className="absolute w-48 h-48 rounded-full border border-emerald-500/30 pointer-events-none" />
-        <div className="absolute w-24 h-24 rounded-full border border-emerald-500/40 pointer-events-none" />
+      {/* Leaflet Dynamic Interactive Map */}
+      <RiderMap 
+        riderLat={riderPos.lat}
+        riderLng={riderPos.lng}
+        deliveryLat={destLat}
+        deliveryLng={destLng}
+        riderName={riderName}
+        riderPhone={riderPhone}
+      />
 
-        {/* Delivery Destination Pin */}
-        <div className="absolute top-12 right-12 flex flex-col items-center group cursor-pointer z-20">
-          <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-red-500/30 border-2 border-white animate-pulse">
-            <MapPin className="w-4 h-4" />
-          </div>
-          <span className="text-[10px] font-bold bg-slate-800 text-slate-200 px-2 py-0.5 rounded border border-slate-700 mt-1 shadow-sm">Destination</span>
-        </div>
-
-        {/* Live Rider Pin */}
-        <div className="absolute bottom-12 left-16 flex flex-col items-center group cursor-pointer z-20 transition-all duration-1000">
-          <div className="w-10 h-10 bg-emerald-500 text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/40 border-2 border-white animate-bounce">
-            <Truck className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] font-bold bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-700 mt-1 shadow-sm">
-            {riderPos ? `📍 GPS Active` : `🛵 On the way`}
-          </span>
-        </div>
-
-        {/* Center Radar Sweep */}
-        <div className="absolute w-2 h-2 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500 animate-pulse z-10" />
-
-        <div className="relative z-10 text-center mt-auto pt-24 pointer-events-none">
-          <p className="text-xs text-slate-400 font-medium max-w-xs mx-auto">
-            {riderPos ? `Tracking active coordinates: ${riderPos.lat.toFixed(4)}, ${riderPos.lng.toFixed(4)}` : 'Establishing secure satellite link with rider GPS device...'}
-          </p>
-        </div>
+      <div className="relative z-10 text-center mt-4">
+        <p className="text-xs text-slate-400 font-medium max-w-xs mx-auto">
+          Tracking active GPS coordinates via Supabase Realtime WebSockets.
+        </p>
       </div>
     </div>
   )

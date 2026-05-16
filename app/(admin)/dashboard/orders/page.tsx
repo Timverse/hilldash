@@ -22,7 +22,20 @@ export default async function OrdersPage() {
       customer_name,
       customer_phone,
       delivery_address,
-      warehouse_id
+      warehouse_id,
+      order_items (
+        id,
+        quantity,
+        price_at_time,
+        product_id,
+        products (
+          name,
+          image_url,
+          batch_number,
+          expiry_date,
+          unit
+        )
+      )
     `)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -35,10 +48,10 @@ export default async function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans antialiased">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Live Orders</h1>
-        <p className="text-slate-500 mt-1">Monitor and manage all incoming orders in real-time.</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Live Orders & Packing Lists</h1>
+        <p className="text-slate-500 mt-1 font-medium">Monitor incoming orders, inspect exact item packing lists, and dispatch riders.</p>
       </div>
 
       {/* Status summary cards */}
@@ -49,17 +62,17 @@ export default async function OrdersPage() {
           { label: 'Out for Delivery', count: statusCounts.out_for_delivery, color: 'bg-purple-50 text-purple-700 border-purple-200' },
           { label: 'Delivered', count: statusCounts.delivered, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
         ].map(s => (
-          <div key={s.label} className={`border rounded-xl p-4 ${s.color}`}>
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{s.label}</p>
-            <p className="text-3xl font-extrabold mt-1">{s.count}</p>
+          <div key={s.label} className={`border rounded-2xl p-6 ${s.color} shadow-sm flex flex-col justify-between`}>
+            <p className="text-xs font-bold uppercase tracking-wider opacity-80">{s.label}</p>
+            <p className="text-4xl font-black mt-2">{s.count}</p>
           </div>
         ))}
       </div>
 
       {/* Orders table */}
       {error ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
-          <p className="font-semibold">Could not load orders.</p>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 shadow-sm">
+          <p className="font-bold">Could not load orders.</p>
           <p className="text-sm mt-1">Ensure the <code>orders</code> table exists in your database and run the required SQL migrations.</p>
         </div>
       ) : (
