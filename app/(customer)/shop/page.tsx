@@ -44,7 +44,7 @@ export default async function ShopPage({
   const currentCategory = matchedCategory
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen font-sans antialiased">
       {/* Shop Header / Breadcrumbs */}
       <div className="border-b bg-slate-50/50">
         <div className="container mx-auto px-4 py-8">
@@ -53,19 +53,19 @@ export default async function ShopPage({
             <ChevronRight className="w-3 h-3" />
             <span className="text-slate-900">Shop</span>
             {currentCategory && (
-              <>
-                <ChevronRight className="w-3 h-3" />
-                <span className="text-primary">{currentCategory.name}</span>
-              </>
+               <>
+                 <ChevronRight className="w-3 h-3" />
+                 <span className="text-primary">{currentCategory.name}</span>
+               </>
             )}
           </div>
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">
-                {currentCategory ? currentCategory.name : 'All <span className="text-primary italic">Essentials</span>'}
+                {currentCategory ? currentCategory.name : <>All <span className="text-primary italic">Essentials</span></>}
               </h1>
-              <p className="text-slate-500 mt-4 text-lg">
+              <p className="text-slate-500 mt-4 text-lg font-medium">
                 Showing {products?.length || 0} premium results from our Jowai Central Hub.
               </p>
             </div>
@@ -125,8 +125,8 @@ export default async function ShopPage({
               <div className="p-6 bg-slate-900 rounded-[2rem] text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 blur-3xl rounded-full" />
                 <h3 className="font-black text-xl mb-2 relative z-10">Need Help?</h3>
-                <p className="text-slate-400 text-xs mb-6 relative z-10 leading-relaxed">Our support team is available 24/7 for any delivery concerns.</p>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl font-bold h-10">
+                <p className="text-slate-400 text-xs mb-6 relative z-10 leading-relaxed font-medium">Our support team is available 24/7 for any delivery concerns.</p>
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl font-bold h-10 shadow-lg shadow-primary/20">
                   Chat With Us
                 </Button>
               </div>
@@ -141,7 +141,7 @@ export default async function ShopPage({
                   <Search className="w-10 h-10" />
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 mb-2">No products found</h3>
-                <p className="text-slate-500 max-w-xs mx-auto">We couldn't find anything matching your selection in this category.</p>
+                <p className="text-slate-500 max-w-xs mx-auto font-medium">We couldn't find anything matching your selection in this category.</p>
                 <Link href="/shop" className="inline-block mt-8">
                   <Button variant="outline" className="rounded-full px-8 font-bold border-2">Clear All Filters</Button>
                 </Link>
@@ -160,4 +160,3 @@ export default async function ShopPage({
     </div>
   )
 }
-
