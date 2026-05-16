@@ -3,6 +3,7 @@ import { MapPin, PackageCheck, ShoppingBag, Truck, AlertCircle, ChevronLeft, Cal
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { LiveRiderTracker } from "@/components/customer/live-rider-tracker"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -137,6 +138,20 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ id:
                 )}
                </div>
             </div>
+
+            {/* Live Rider Tracking Radar Component */}
+            {!isCancelled && (
+              <LiveRiderTracker 
+                orderId={order.id}
+                initialLat={order.rider_lat}
+                initialLng={order.rider_lng}
+                deliveryLat={order.delivery_lat}
+                deliveryLng={order.delivery_lng}
+                status={order.status}
+                riderName={order.rider_name}
+                riderPhone={order.rider_phone}
+              />
+            )}
           </div>
 
           {/* Sidebar: Order Summary */}

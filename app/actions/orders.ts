@@ -18,5 +18,27 @@ export async function updateOrderStatusAction(orderId: string, newStatus: string
 
   revalidatePath('/dashboard/orders')
   revalidatePath('/dashboard')
+  revalidatePath(`/track/${orderId}`)
+  return { success: true }
+}
+
+export async function broadcastRiderLocation(orderId: string, lat: number, lng: number) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ 
+      rider_lat: lat, 
+      rider_lng: lng,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', orderId)
+
+  if (error) {
+    console.error('broadcastRiderLocation error:', error)
+    return { error: 'Failed to broadcast rider location' }
+  }
+
+  revalidatePath(`/track/${orderId}`)
   return { success: true }
 }

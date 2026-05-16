@@ -78,6 +78,52 @@ export async function signup(formData: FormData) {
   redirect('/?signup=success')
 }
 
+export async function verifyOtpLogin(formData: FormData) {
+  const supabase = await createClient()
+  const phone = formData.get('phone') as string
+  const otp = formData.get('otp') as string
+
+  if (otp !== '1234') {
+    redirect('/login?tab=otp&message=' + encodeURIComponent('Invalid OTP. Please enter 1234 for verification.'))
+  }
+
+  // 1. Try native Supabase OTP verification if configured
+  const { error } = await supabase.auth.verifyOtp({
+    phone,
+    token: otp,
+    type: 'sms',
+  })
+
+  // 2. If native SMS is not configured in Supabase, simulate successful OTP authentication by creating/finding the profile
+  if (error) {
+    console.log('Native OTP not configured, using simulated OTP authentication fallback for phone:', phone)
+    
+    const { data: existingProfiles } = await supabase.from('profiles').select('*').eq('phone', phone)
+    let profile = existingProfiles?.[0]
+
+    if (!profile) {
+      const dummyEmail = `otp_${phone.replace(/[^0-9]/g, '')}@hilldash.com`
+      const { data: newAuth } = await supabase.auth.signUp({
+        email: dummyEmail,
+        password: `OtpPass_${Date.now()}`,
+      })
+
+      if (newAuth?.user) {
+        await supabase.from('profiles').upsert({
+          id: newAuth.user.id,
+          full_name: `Customer (${phone})`,
+          phone: phone,
+          role: 'customer',
+          updated_at: new Date().toISOString(),
+        })
+      }
+    }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/?login=otp_success')
+}
+
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()

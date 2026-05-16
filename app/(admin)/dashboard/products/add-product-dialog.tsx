@@ -47,6 +47,8 @@ export function AddProductDialog({
     const priceEl = form.elements.namedItem("price") as HTMLInputElement
     const stockEl = form.elements.namedItem("stock") as HTMLInputElement
     const descEl = form.elements.namedItem("description") as HTMLInputElement
+    const batchEl = form.elements.namedItem("batch_number") as HTMLInputElement
+    const expiryEl = form.elements.namedItem("expiry_date") as HTMLInputElement
 
     // Basic validation
     if (!nameEl.value.trim()) { toast.error("Product name is required"); return }
@@ -62,6 +64,8 @@ export function AddProductDialog({
       formData.append("price", priceEl.value)
       formData.append("stock", stockEl.value || "0")
       if (isActive) formData.append("is_active", "on")
+      if (batchEl?.value) formData.append("batch_number", batchEl.value.trim())
+      if (expiryEl?.value) formData.append("expiry_date", expiryEl.value)
       if (imageFile) formData.append("image", imageFile)
 
       console.log("Submitting product:", {
@@ -69,6 +73,8 @@ export function AddProductDialog({
         category_id: selectedCategoryId,
         price: priceEl.value,
         stock: stockEl.value,
+        batch_number: batchEl?.value,
+        expiry_date: expiryEl?.value
       })
 
       const result = await createProductAction(formData)
@@ -95,7 +101,7 @@ export function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white">
+      <DialogContent className="sm:max-w-[500px] bg-white font-sans antialiased">
         <DialogHeader>
           <DialogTitle className="text-slate-900">Add New Product</DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -110,7 +116,7 @@ export function AddProductDialog({
             <Input
               id="name"
               name="name"
-              placeholder="e.g. Fresh Organic Tomatoes"
+              placeholder="e.g. Fresh Organic Khasi Tomatoes"
               className="border-slate-300 focus:border-emerald-500"
               required
             />
@@ -189,6 +195,30 @@ export function AddProductDialog({
                 />
                 <span className="ml-2 text-sm text-slate-500">{isActive ? "Yes" : "No"}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Batch Number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="batch_number" className="text-slate-700 font-medium">Batch Number (FIFO)</Label>
+              <Input
+                id="batch_number"
+                name="batch_number"
+                placeholder="e.g. BATCH-2026-A"
+                className="border-slate-300"
+              />
+            </div>
+
+            {/* Expiry Date */}
+            <div className="space-y-1.5">
+              <Label htmlFor="expiry_date" className="text-slate-700 font-medium">Expiry Date</Label>
+              <Input
+                id="expiry_date"
+                name="expiry_date"
+                type="date"
+                className="border-slate-300 text-slate-900"
+              />
             </div>
           </div>
 

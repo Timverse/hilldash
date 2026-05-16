@@ -13,6 +13,8 @@ export async function createProductAction(formData: FormData) {
   console.log('price:', formData.get('price'))
   console.log('stock:', formData.get('stock'))
   console.log('is_active:', formData.get('is_active'))
+  console.log('batch_number:', formData.get('batch_number'))
+  console.log('expiry_date:', formData.get('expiry_date'))
 
   // Dynamically fetch the first available warehouse
   const { data: warehouses, error: warehouseError } = await supabase
@@ -35,6 +37,8 @@ export async function createProductAction(formData: FormData) {
   const price = parseFloat(formData.get('price') as string)
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
+  const batch_number = formData.get('batch_number') as string || null
+  const expiry_date = formData.get('expiry_date') as string || null
   const imageFile = formData.get('image') as File | null
 
   let image_url = ''
@@ -52,7 +56,6 @@ export async function createProductAction(formData: FormData) {
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      // Don't block product creation if image upload fails — just skip image
       console.log('Continuing without image due to upload error')
     } else {
       const { data: publicUrlData } = supabase.storage
@@ -70,6 +73,8 @@ export async function createProductAction(formData: FormData) {
     price,
     stock: isNaN(stock) ? 0 : stock,
     is_active,
+    batch_number,
+    expiry_date: expiry_date ? new Date(expiry_date).toISOString() : null,
     image_url,
     warehouse_id: warehouseId
   }
@@ -106,9 +111,20 @@ export async function editProductAction(id: string, formData: FormData) {
   const price = parseFloat(formData.get('price') as string)
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
+  const batch_number = formData.get('batch_number') as string || null
+  const expiry_date = formData.get('expiry_date') as string || null
   const imageFile = formData.get('image') as File | null
 
-  const updateData: any = { name, description, category_id, price, stock, is_active }
+  const updateData: any = { 
+    name, 
+    description, 
+    category_id, 
+    price, 
+    stock, 
+    is_active,
+    batch_number,
+    expiry_date: expiry_date ? new Date(expiry_date).toISOString() : null
+  }
 
   if (imageFile && imageFile.size > 0) {
     const fileExt = imageFile.name.split('.').pop()

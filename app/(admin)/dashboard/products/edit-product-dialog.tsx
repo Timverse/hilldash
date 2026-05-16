@@ -25,6 +25,8 @@ const formSchema = z.object({
   price: z.string().min(1, "Price is required"),
   stock: z.string().min(1, "Stock is required"),
   is_active: z.boolean(),
+  batch_number: z.string().optional(),
+  expiry_date: z.string().optional(),
 })
 
 export function EditProductDialog({ 
@@ -65,10 +67,12 @@ export function EditProductDialog({
     defaultValues: {
       name: product?.name || "",
       description: product?.description || "",
-      category_id: product?.category_id || (product?.categories?.id || ""), // Depending on how nested category is returned
+      category_id: product?.category_id || (product?.categories?.id || ""),
       price: product?.price?.toString() || "0",
       stock: product?.stock?.toString() || "0",
       is_active: product?.is_active ?? true,
+      batch_number: product?.batch_number || "",
+      expiry_date: product?.expiry_date ? product.expiry_date.split('T')[0] : "",
     },
   })
 
@@ -78,10 +82,12 @@ export function EditProductDialog({
       form.reset({
         name: product.name || "",
         description: product.description || "",
-        category_id: product.category_id || "", // Ensure we use category_id
+        category_id: product.category_id || (product.categories?.id || ""),
         price: product.price?.toString() || "0",
         stock: product.stock?.toString() || "0",
         is_active: product.is_active ?? true,
+        batch_number: product.batch_number || "",
+        expiry_date: product.expiry_date ? product.expiry_date.split('T')[0] : "",
       })
     }
   }, [product, form])
@@ -96,6 +102,8 @@ export function EditProductDialog({
       formData.append("price", values.price.toString())
       formData.append("stock", values.stock.toString())
       if (values.is_active) formData.append("is_active", "on")
+      if (values.batch_number) formData.append("batch_number", values.batch_number)
+      if (values.expiry_date) formData.append("expiry_date", values.expiry_date)
 
       const fileInput = document.getElementById('edit-image') as HTMLInputElement
       if (fileInput?.files?.[0]) {
@@ -120,11 +128,11 @@ export function EditProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-white font-sans antialiased">
         <DialogHeader>
-          <DialogTitle>Edit Product</DialogTitle>
-          <DialogDescription>
-            Modify product details or update the image.
+          <DialogTitle className="text-slate-900">Edit Product</DialogTitle>
+          <DialogDescription className="text-slate-500">
+            Modify product details, batch tracking, or update the image.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,9 +143,9 @@ export function EditProductDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name</FormLabel>
+                  <FormLabel className="text-slate-700 font-medium">Product Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Local Organic Tomatoes" {...field} />
+                    <Input placeholder="e.g. Local Organic Khasi Tomatoes" className="border-slate-300" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,16 +158,16 @@ export function EditProductDialog({
                 name="category_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel className="text-slate-700 font-medium">Category</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="border-slate-300 bg-white text-slate-900">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white border-slate-200 z-[200]">
                         {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">{cat.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -173,9 +181,9 @@ export function EditProductDialog({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price (₹)</FormLabel>
+                    <FormLabel className="text-slate-700 font-medium">Price (₹)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" className="border-slate-300" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,9 +197,9 @@ export function EditProductDialog({
                 name="stock"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stock</FormLabel>
+                    <FormLabel className="text-slate-700 font-medium">Stock</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" className="border-slate-300" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -203,7 +211,7 @@ export function EditProductDialog({
                 name="is_active"
                 render={({ field }) => (
                   <FormItem className="flex flex-col justify-center space-y-2 mt-2">
-                    <FormLabel>Available for Sale</FormLabel>
+                    <FormLabel className="text-slate-700 font-medium">Available for Sale</FormLabel>
                     <FormControl>
                       <Switch
                         checked={field.value}
@@ -216,10 +224,40 @@ export function EditProductDialog({
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="batch_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-700 font-medium">Batch Number (FIFO)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. BATCH-2026-A" className="border-slate-300" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="expiry_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-700 font-medium">Expiry Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" className="border-slate-300 text-slate-900" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormItem>
-              <FormLabel>Product Image</FormLabel>
+              <FormLabel className="text-slate-700 font-medium">Product Image</FormLabel>
               <FormControl>
-                <Input id="edit-image" type="file" accept="image/*" onChange={handleImageChange} />
+                <Input id="edit-image" type="file" accept="image/*" onChange={handleImageChange} className="border-slate-300 cursor-pointer" />
               </FormControl>
               {imagePreview && (
                 <div className="mt-4 border rounded-md overflow-hidden bg-slate-50 w-full h-40 relative flex justify-center items-center">
@@ -229,11 +267,11 @@ export function EditProductDialog({
               )}
             </FormItem>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90 text-white">
+              <Button type="submit" disabled={isSubmitting} className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold">
                 {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : 'Update Product'}
               </Button>
             </div>
