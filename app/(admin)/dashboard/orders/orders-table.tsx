@@ -46,25 +46,40 @@ const STATUS_FLOW: Record<string, { label: string; next: string | null; nextLabe
   confirmed:        { label: "Confirmed",        next: "packed",           nextLabel: "Pack Order",      badge: "bg-indigo-100 text-indigo-700 border border-indigo-200" },
 }
 
-export function OrdersTable({ orders }: { orders: Order[] | any }) {
+export function OrdersTable({ orders = [] }: { orders: Order[] | any }) {
   const router = useRouter()
+  const [liveOrders, setLiveOrders] = useState<Order[]>(orders || [])
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [packedItems, setPackedItems] = useState<Record<string, boolean>>({})
 
-  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE ORDERS
+  // Sync state if initial props change via server revalidation
+  useEffect(() => {
+    setLiveOrders(orders || [])
+  }, [orders])
+
+  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE ORDERS (INSTANT CLIENT STATE SYNC)
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
-      .channel('realtime-orders-admin')
+      .channel('realtime-orders-admin-client')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-        console.log('Realtime order update received:', payload)
-        router.refresh()
+        console.log('Realtime admin order update received:', payload)
+
         if (payload.eventType === 'INSERT') {
+          const newOrder = payload.new as Order
+          setLiveOrders(prev => [newOrder, ...prev])
           toast.success('🔔 New Order Placed! Live orders table updated.')
         } else if (payload.eventType === 'UPDATE') {
+          const updatedOrder = payload.new as Order
+          setLiveOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o))
           toast.info('🔄 Order status updated in real time.')
+        } else if (payload.eventType === 'DELETE') {
+          setLiveOrders(prev => prev.filter(o => o.id !== payload.old?.id))
         }
+
+        // Trigger background server revalidation
+        router.refresh()
       })
       .subscribe()
 
@@ -75,9 +90,13 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
 
   const handleAdvance = async (orderId: string, nextStatus: string) => {
     setLoadingId(orderId)
+    // Optimistically update client state
+    setLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: nextStatus } : o))
+    
     const result = await updateOrderStatusAction(orderId, nextStatus)
     if (result.error) {
       toast.error(result.error)
+      router.refresh() // Revert optimistic update on error
     } else {
       toast.success(`Order updated to "${STATUS_FLOW[nextStatus]?.label || nextStatus}"`)
       if (selectedOrder?.id === orderId) {
@@ -89,9 +108,15 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
 
   const handleCancel = async (orderId: string) => {
     setLoadingId(orderId)
+    setLiveOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+
     const result = await updateOrderStatusAction(orderId, "cancelled")
-    if (result.error) toast.error(result.error)
-    else toast.success("Order cancelled")
+    if (result.error) {
+      toast.error(result.error)
+      router.refresh()
+    } else {
+      toast.success("Order cancelled")
+    }
     setLoadingId(null)
   }
 
@@ -99,7 +124,7 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
     setPackedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }))
   }
 
-  if (!orders || orders.length === 0) {
+  if (!liveOrders || liveOrders.length === 0) {
     return (
       <div className="bg-white border rounded-[2.5rem] p-16 flex flex-col items-center justify-center text-center shadow-sm font-sans antialiased">
         <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-6 text-slate-400 shadow-inner">
@@ -130,7 +155,7 @@ export function OrdersTable({ orders }: { orders: Order[] | any }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order: any) => {
+            {liveOrders.map((order: any) => {
               const flow = STATUS_FLOW[order.status] || STATUS_FLOW.pending
               const isLoading = loadingId === order.id
               const nameMatch = order.notes?.match(/Name: ([^\n]+)/)

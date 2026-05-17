@@ -21,22 +21,63 @@ export function RiderClient({
   totalEarnings: number 
 }) {
   const router = useRouter();
-  const safeOrders = initialOrders || [];
-  const safeCompleted = initialCompleted || [];
+  const [orders, setOrders] = useState(initialOrders || []);
+  const [completed, setCompleted] = useState(initialCompleted || []);
 
-  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDER DISPATCHES
+  // Sync state if initial props change via server revalidation
+  useEffect(() => {
+    setOrders(initialOrders || []);
+    setCompleted(initialCompleted || []);
+  }, [initialOrders, initialCompleted]);
+
+  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDER DISPATCHES (INSTANT CLIENT STATE SYNC)
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel('realtime-orders-rider')
+      .channel('realtime-orders-rider-client')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         console.log('Realtime rider order update received:', payload);
-        router.refresh();
-        if (payload.eventType === 'UPDATE' && (payload.new?.status === 'packed' || payload.new?.status === 'out_for_delivery')) {
-          toast.success('📦 New Dispatch Alert: Order is ready for delivery!');
-        } else if (payload.eventType === 'UPDATE' && payload.new?.status === 'delivered') {
-          toast.success('🎉 Delivery Confirmed! Commission added to your earnings.');
+
+        if (payload.eventType === 'INSERT') {
+          const newOrder = payload.new;
+          if (newOrder?.status === 'packed' || newOrder?.status === 'out_for_delivery') {
+            setOrders(prev => [newOrder, ...prev]);
+            toast.success('📦 New Dispatch Alert: Order is ready for delivery!');
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedOrder = payload.new;
+          
+          // Handle active dispatches (packed, out_for_delivery)
+          if (updatedOrder?.status === 'packed' || updatedOrder?.status === 'out_for_delivery') {
+            setOrders(prev => {
+              const exists = prev.some(o => o.id === updatedOrder.id);
+              if (exists) {
+                return prev.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+              } else {
+                toast.success('📦 New Dispatch Alert: Order is ready for delivery!');
+                return [updatedOrder, ...prev];
+              }
+            });
+          } else {
+            // If status changed to delivered or cancelled, remove from active dispatches list
+            setOrders(prev => prev.filter(o => o.id !== updatedOrder?.id));
+
+            if (updatedOrder?.status === 'delivered') {
+              setCompleted(prev => {
+                if (!prev.some(c => c.id === updatedOrder.id)) {
+                  toast.success('🎉 Delivery Confirmed! Commission added to your earnings.');
+                  return [...prev, { id: updatedOrder.id, total: updatedOrder.total }];
+                }
+                return prev;
+              });
+            }
+          }
+        } else if (payload.eventType === 'DELETE') {
+          setOrders(prev => prev.filter(o => o.id !== payload.old?.id));
         }
+
+        // Trigger background server revalidation
+        router.refresh();
       })
       .subscribe();
 
@@ -44,6 +85,8 @@ export function RiderClient({
       supabase.removeChannel(channel);
     };
   }, [router]);
+
+  const calculatedEarnings = completed.length * 40; // ₹40 per delivery commission
 
   return (
     <div className="min-h-screen bg-slate-900 text-white pb-24 font-sans antialiased">
@@ -76,7 +119,7 @@ export function RiderClient({
           <div className="flex justify-between items-start mb-6 relative z-10">
             <div>
               <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider">Today's Earnings</p>
-              <h2 className="text-4xl font-black text-white mt-1">₹{totalEarnings}</h2>
+              <h2 className="text-4xl font-black text-white mt-1">₹{calculatedEarnings}</h2>
             </div>
             <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl border border-white/20 shadow-sm">
               <ShieldCheck className="w-6 h-6 text-white" />
@@ -86,11 +129,11 @@ export function RiderClient({
           <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/20 relative z-10">
             <div>
               <p className="text-emerald-100 text-xs font-medium">Completed Deliveries</p>
-              <p className="text-2xl font-black text-white mt-0.5">{safeCompleted.length} Orders</p>
+              <p className="text-2xl font-black text-white mt-0.5">{completed.length} Orders</p>
             </div>
             <div>
               <p className="text-emerald-100 text-xs font-medium">Active Dispatch</p>
-              <p className="text-2xl font-black text-white mt-0.5">{safeOrders.length} Pending</p>
+              <p className="text-2xl font-black text-white mt-0.5">{orders.length} Pending</p>
             </div>
           </div>
         </div>
@@ -106,7 +149,7 @@ export function RiderClient({
         </div>
 
         {/* Orders List */}
-        {safeOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-[2.5rem] p-12 text-center flex flex-col items-center justify-center shadow-inner">
             <div className="w-16 h-16 bg-slate-800 rounded-3xl flex items-center justify-center text-slate-500 mb-4 border border-slate-700 shadow-sm">
               <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: '10s' }} />
@@ -116,7 +159,7 @@ export function RiderClient({
           </div>
         ) : (
           <div className="space-y-4">
-            {safeOrders.map((order) => {
+            {orders.map((order) => {
               const nameMatch = order.notes?.match(/Name: ([^\n]+)/);
               const phoneMatch = order.notes?.match(/Phone: ([^\n]+)/);
               const customerName = order.customer_name || nameMatch?.[1] || "Guest";

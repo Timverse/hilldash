@@ -24,22 +24,36 @@ export function RidersClient({
   initialRiders: any[]; warehouses: any[] 
 }) {
   const router = useRouter();
-  const safeRiders = initialRiders || [];
+  const [liveRiders, setLiveRiders] = useState(initialRiders || []);
   const safeWarehouses = warehouses || [];
 
-  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDERS FLEET
+  // Sync state if initial props change via server revalidation
+  useEffect(() => {
+    setLiveRiders(initialRiders || []);
+  }, [initialRiders]);
+
+  // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDERS FLEET (INSTANT CLIENT STATE SYNC)
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel('realtime-riders-admin')
+      .channel('realtime-riders-admin-client')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'riders' }, (payload) => {
         console.log('Realtime rider update received:', payload);
-        router.refresh();
+
         if (payload.eventType === 'INSERT') {
+          const newRider = payload.new;
+          setLiveRiders(prev => [newRider, ...prev]);
           toast.success('🏍️ New Rider Added! Delivery fleet updated.');
         } else if (payload.eventType === 'UPDATE') {
+          const updatedRider = payload.new;
+          setLiveRiders(prev => prev.map(r => r.id === updatedRider.id ? updatedRider : r));
           toast.info('🔄 Rider dispatch status updated in real time.');
+        } else if (payload.eventType === 'DELETE') {
+          setLiveRiders(prev => prev.filter(r => r.id !== payload.old?.id));
         }
+
+        // Trigger background server revalidation
+        router.refresh();
       })
       .subscribe();
 
@@ -48,9 +62,9 @@ export function RidersClient({
     };
   }, [router]);
 
-  const availableCount = safeRiders.filter(r => r.status === 'available').length;
-  const busyCount = safeRiders.filter(r => r.status === 'on_delivery').length;
-  const offlineCount = safeRiders.filter(r => r.status === 'offline').length;
+  const availableCount = liveRiders.filter(r => r.status === 'available').length;
+  const busyCount = liveRiders.filter(r => r.status === 'on_delivery').length;
+  const offlineCount = liveRiders.filter(r => r.status === 'offline').length;
 
   return (
     <div className="space-y-8 font-sans antialiased">
@@ -73,7 +87,7 @@ export function RidersClient({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{safeRiders.length}</div>
+            <div className="text-3xl font-black text-slate-900">{liveRiders.length}</div>
           </CardContent>
         </Card>
 
@@ -120,7 +134,7 @@ export function RidersClient({
           <CardTitle className="text-lg font-black text-slate-900 tracking-tight">Active Personnel</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {safeRiders.length === 0 ? (
+          {liveRiders.length === 0 ? (
             <div className="p-16 text-center text-slate-500">
               <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
                 <Bike className="w-10 h-10" />
@@ -142,7 +156,7 @@ export function RidersClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {safeRiders.map((rider) => {
+                {liveRiders.map((rider) => {
                   const statusInfo = STATUS_MAP[rider.status] || STATUS_MAP.offline;
 
                   return (
