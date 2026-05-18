@@ -39,11 +39,21 @@ export default async function RiderPortalPage() {
 
   const { data: orders } = await ordersQuery;
 
-  // Fetch completed orders today for rider earnings/stats
+  // Calculate active window start time
+  // "instead of Daily Window, we say like you can generate a receipt for yesterday's work till 7:30AM tomorrow, because by 8 AM - we will refresh the riders earnings and it will be zero again"
+  const now = new Date();
+  let activeWindowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 50, 0);
+  if (now.getTime() < activeWindowStart.getTime()) {
+    // If it's before 7:50 AM today, the active window started at 7:50 AM yesterday
+    activeWindowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 7, 50, 0);
+  }
+
+  // Fetch completed orders today for rider earnings/stats within the active window
   let completedQuery = adminClient
     .from('orders')
-    .select('id, total')
-    .eq('status', 'delivered');
+    .select('id, total, created_at')
+    .eq('status', 'delivered')
+    .gte('created_at', activeWindowStart.toISOString());
 
   if (riderWarehouseId) {
     completedQuery = completedQuery.eq('warehouse_id', riderWarehouseId);
@@ -54,13 +64,17 @@ export default async function RiderPortalPage() {
   const safeOrders = orders || [];
   const safeCompleted = completedOrders || [];
 
-  const totalEarnings = safeCompleted.length * 40; // ₹40 per delivery commission
+  // If rider has already generated a receipt for this window, effective completed count is 0
+  const hasGeneratedReceipt = !!riderProfile?.active_token_id;
+  const effectiveCompletedCount = hasGeneratedReceipt ? 0 : safeCompleted.length;
+  const totalEarnings = effectiveCompletedCount * 40; // ₹40 per delivery commission
 
   return (
     <RiderClient 
       initialOrders={safeOrders} 
       initialCompleted={safeCompleted} 
       totalEarnings={totalEarnings} 
+      initialRiderProfile={riderProfile}
     />
   );
 }

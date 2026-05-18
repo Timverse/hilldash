@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { RidersClient } from './riders-client';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export default async function AdminRidersPage() {
   const supabase = await createClient();
@@ -45,6 +47,8 @@ export default async function AdminRidersPage() {
     .select('id, name')
     .eq('is_active', true)
     .order('name');
+
+  revalidatePath('/dashboard/riders', 'page');
 
   return (
     <RidersClient 

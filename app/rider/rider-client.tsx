@@ -16,48 +16,57 @@ import { saveRiderReceiptAction } from '@/app/actions/rider-receipt';
 export function RiderClient({ 
   initialOrders = [], 
   initialCompleted = [], 
-  totalEarnings = 0 
+  totalEarnings = 0,
+  initialRiderProfile = null
 }: { 
   initialOrders: any[]; 
   initialCompleted: any[]; 
-  totalEarnings: number 
+  totalEarnings: number;
+  initialRiderProfile?: any;
 }) {
   const router = useRouter();
   const [orders, setOrders] = useState(initialOrders || []);
   const [completed, setCompleted] = useState(initialCompleted || []);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [riderProfile, setRiderProfile] = useState<any>(null);
+  const [riderProfile, setRiderProfile] = useState<any>(initialRiderProfile);
 
   // Online / Stop Work State
-  const [isWorking, setIsWorking] = useState(true);
+  const [isWorking, setIsWorking] = useState(initialRiderProfile ? initialRiderProfile.status !== 'off_duty' : true);
 
   // Daily Receipt Generation State
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [generatedTokenId, setGeneratedTokenId] = useState<string | null>(null);
+  const [generatedTokenId, setGeneratedTokenId] = useState<string | null>(initialRiderProfile?.active_token_id || null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
 
-  // Filter completed orders for the current daily window (resets every morning at 7:30 AM)
+  // SYSTEM REFRESH WINDOW CHECK (7:30 AM - 7:50 AM Daily)
+  // "between 7:30AM-7:50AM, they should not be able to login as we are doing a system refresh"
   const now = new Date();
-  const today730AM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 30, 0);
-  const yesterday730AM = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 7, 30, 0);
-  const activeWindowStart = now.getTime() >= today730AM.getTime() ? today730AM : yesterday730AM;
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const isRefreshWindow = currentHour === 7 && currentMinute >= 30 && currentMinute < 50;
 
-  // We filter completed orders to only count those delivered within the current 7:30 AM window
-  const todayCompleted = completed; // If timestamps are available in completed orders, we can filter them. By default initialCompleted is fetched for today.
-  const calculatedEarnings = todayCompleted.length * 40; // ₹40 per delivery commission
+  // Filter completed orders for the active window
+  const todayCompleted = completed;
+  
+  // If rider has an active_token_id, it means they already generated a receipt for their work, so their displayed earnings refresh to 0
+  const hasGeneratedReceipt = !!riderProfile?.active_token_id;
+  const effectiveCompletedCount = hasGeneratedReceipt ? 0 : todayCompleted.length;
+  const calculatedEarnings = effectiveCompletedCount * 40; // ₹40 per delivery commission
 
-  // Fetch current user and rider profile on mount
+  // Fetch current user and rider profile on mount if not provided by server props
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
         setCurrentUser(data.user);
-        // Fetch rider profile from riders table
         supabase.from('riders').select('*').eq('id', data.user.id).single().then(({ data: rider }) => {
           if (rider) {
             setRiderProfile(rider);
             setIsWorking(rider.status !== 'off_duty');
+            if (rider.active_token_id) {
+              setGeneratedTokenId(rider.active_token_id);
+            }
           }
         });
       }
@@ -68,7 +77,14 @@ export function RiderClient({
   useEffect(() => {
     setOrders(initialOrders || []);
     setCompleted(initialCompleted || []);
-  }, [initialOrders, initialCompleted]);
+    if (initialRiderProfile) {
+      setRiderProfile(initialRiderProfile);
+      setIsWorking(initialRiderProfile.status !== 'off_duty');
+      if (initialRiderProfile.active_token_id) {
+        setGeneratedTokenId(initialRiderProfile.active_token_id);
+      }
+    }
+  }, [initialOrders, initialCompleted, initialRiderProfile]);
 
   // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDER DISPATCHES (INSTANT CLIENT STATE SYNC)
   useEffect(() => {
@@ -123,6 +139,27 @@ export function RiderClient({
     };
   }, [router, riderProfile]);
 
+  // If we are in the 7:30 AM - 7:50 AM System Refresh Window, show the blocking maintenance screen
+  if (isRefreshWindow) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center selection:bg-emerald-500 selection:text-slate-900 animate-fadeIn">
+        <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/30 rounded-3xl flex items-center justify-center text-amber-400 mb-6 shadow-lg animate-pulse">
+          <Clock className="w-10 h-10" />
+        </div>
+        <h1 className="text-2xl font-black tracking-tight mb-2">System Refresh in Progress</h1>
+        <Badge className="bg-amber-500 text-slate-950 font-extrabold uppercase tracking-widest px-3 py-1 text-[10px] mb-6 border-none">
+          7:30 AM – 7:50 AM Daily Maintenance
+        </Badge>
+        <p className="text-slate-400 text-sm max-w-sm font-medium leading-relaxed mb-8">
+          We are currently auditing yesterday's delivery receipts and resetting active logs for the new shift. Please check back at 7:50 AM to access your portal.
+        </p>
+        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl max-w-xs w-full text-xs text-slate-500 font-mono mx-auto">
+          System Time: {format(now, "hh:mm a")}
+        </div>
+      </div>
+    );
+  }
+
   // Toggle Work Status (Online / Stop Work for Now)
   const handleToggleWorkStatus = async () => {
     if (!currentUser) return;
@@ -159,6 +196,8 @@ export function RiderClient({
       toast.error(res.error);
     } else if (res.success) {
       setGeneratedTokenId(newTokenId);
+      // Update local profile state so UI instantly shows 0 earnings
+      setRiderProfile((prev: any) => ({ ...prev, active_token_id: newTokenId }));
       setIsReceiptModalOpen(true);
       toast.success("🧾 Daily Earnings Receipt generated successfully!");
     }
@@ -185,7 +224,7 @@ export function RiderClient({
             <span className="font-extrabold text-xl tracking-tight text-white leading-none">
               Sawaïom <span className="text-emerald-400">Rider</span>
             </span>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{riderProfile?.name || 'Mookyrdup Hub'}</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{riderProfile?.warehouses?.name || 'Mookyrdup Hub'}</p>
           </div>
         </div>
 
@@ -229,10 +268,10 @@ export function RiderClient({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge className="bg-emerald-500/30 text-emerald-100 border border-emerald-400/30 font-bold px-2.5 py-0.5 text-[10px] rounded-full uppercase tracking-widest shadow-sm">
-                  Daily Window (7:30 AM)
+                  Yesterday's Work (Valid till 7:30 AM)
                 </Badge>
               </div>
-              <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider mt-1">Today's Earnings</p>
+              <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider mt-1">Pending Unverified Earnings</p>
               <h2 className="text-4xl font-black text-white mt-0.5">₹{calculatedEarnings}</h2>
             </div>
             <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl border border-white/20 shadow-sm">
@@ -242,8 +281,8 @@ export function RiderClient({
 
           <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/20 relative z-10">
             <div>
-              <p className="text-emerald-100 text-xs font-medium">Completed Today</p>
-              <p className="text-2xl font-black text-white mt-0.5">{todayCompleted.length} Orders</p>
+              <p className="text-emerald-100 text-xs font-medium">Completed Deliveries</p>
+              <p className="text-2xl font-black text-white mt-0.5">{effectiveCompletedCount} Orders</p>
             </div>
             <div>
               <p className="text-emerald-100 text-xs font-medium">Active Dispatch</p>
@@ -251,20 +290,44 @@ export function RiderClient({
             </div>
           </div>
 
-          {/* Generate Daily Receipt Button */}
-          <div className="pt-6 mt-2 border-t border-white/20 relative z-10">
-            <Button 
-              onClick={handleGenerateReceipt}
-              disabled={isGeneratingReceipt || todayCompleted.length === 0}
-              className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-xl shadow-slate-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Receipt className="w-5 h-5 text-emerald-400" />
-              {isGeneratingReceipt ? "GENERATING RECEIPT..." : "GENERATE DAILY EARNINGS RECEIPT"}
-            </Button>
-            {todayCompleted.length === 0 && (
-              <p className="text-[10px] text-emerald-200 text-center mt-2 italic font-medium">
-                * Complete at least 1 delivery today to generate an earnings receipt.
-              </p>
+          {/* Generate Daily Receipt Button / Status */}
+          <div className="pt-6 mt-2 border-t border-white/20 relative z-10 space-y-2">
+            {hasGeneratedReceipt ? (
+              <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-2 shadow-inner">
+                <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <CheckCircle2 className="w-4 h-4" /> Receipt Generated Successfully
+                </div>
+                <div className="font-mono text-lg font-black text-white tracking-widest bg-slate-950 py-2 rounded-xl border border-slate-800">
+                  {generatedTokenId}
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Provide this Token ID to the warehouse admin. Your earnings will refresh to ₹0 until the next shift starts.
+                </p>
+                <Button 
+                  onClick={() => setIsReceiptModalOpen(true)}
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs font-bold text-emerald-300 hover:text-white hover:bg-slate-800"
+                >
+                  View Receipt Details
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  onClick={handleGenerateReceipt}
+                  disabled={isGeneratingReceipt || effectiveCompletedCount === 0}
+                  className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-xl shadow-slate-900/30 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Receipt className="w-5 h-5 text-emerald-400" />
+                  {isGeneratingReceipt ? "GENERATING RECEIPT..." : "GENERATE DAILY EARNINGS RECEIPT"}
+                </Button>
+                {effectiveCompletedCount === 0 && (
+                  <p className="text-[10px] text-emerald-200 text-center mt-2 italic font-medium">
+                    * Complete at least 1 delivery today to generate an earnings receipt.
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -286,7 +349,7 @@ export function RiderClient({
               <Clock className="w-8 h-8 animate-spin" style={{ animationDuration: '10s' }} />
             </div>
             <h3 className="text-lg font-bold text-white mb-1 tracking-tight">No active dispatches</h3>
-            <p className="text-slate-400 text-sm max-w-xs mx-auto font-medium leading-relaxed">Waiting for Mookyrdup Hub to pack and assign new orders. Take a breather!</p>
+            <p className="text-slate-400 text-sm max-w-xs mx-auto font-medium leading-relaxed">Waiting for {riderProfile?.warehouses?.name || 'Mookyrdup Hub'} to pack and assign new orders. Take a breather!</p>
           </div>
         ) : (
           <div className="space-y-4 animate-fadeIn">
@@ -346,7 +409,7 @@ export function RiderClient({
                       <Phone className="w-5 h-5 text-blue-400 shrink-0" />
                       <a href={`tel:${customerPhone}`} className="font-bold text-white hover:underline flex items-center gap-2">
                         {customerPhone}
-                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Call</span>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-50/30 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">Call</span>
                       </a>
                     </div>
 
@@ -388,7 +451,7 @@ export function RiderClient({
                   <h3 className="font-black text-white text-lg tracking-tight">Daily Earnings Receipt</h3>
                 </div>
                 <Badge className="bg-emerald-500 text-slate-900 font-extrabold px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-md border-none shadow-sm">
-                  Verified
+                  Generated
                 </Badge>
               </div>
 
@@ -407,8 +470,8 @@ export function RiderClient({
                     <span className="text-emerald-400 font-black">{todayCompleted.length} Orders</span>
                   </div>
                   <div className="flex justify-between text-slate-400 text-xs">
-                    <span>Total Earnings</span>
-                    <span className="text-emerald-400 font-black text-base">₹{calculatedEarnings.toFixed(2)}</span>
+                    <span>Total Pending Earnings</span>
+                    <span className="text-emerald-400 font-black text-base">₹{(todayCompleted.length * 40).toFixed(2)}</span>
                   </div>
                 </div>
 
