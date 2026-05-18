@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useCartStore } from "@/lib/store/cart"
+import { useAddressStore } from "@/lib/store/address"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { processCheckoutAction } from "@/app/actions/checkout"
 import { toast } from "sonner"
-import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles, Tag, Gift, User, ArrowRight, ShieldCheck, FileText, Check, Zap } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles, Tag, Gift, User, ArrowRight, ShieldCheck, FileText, Check, Zap, Plus, Trash2, Navigation } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { calculateDistanceKm, calculateDeliveryFee, resolveJowaiLocality } from "@/lib/utils/distance"
@@ -56,14 +57,21 @@ export function CheckoutForm({
 }) {
   const router = useRouter()
   const { items, getCartTotal, clearCart } = useCartStore()
+  const { addresses, activeAddressId, setActiveAddress, addAddress, deleteAddress, getActiveAddress } = useAddressStore()
   const [mounted, setMounted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationName, setLocationName] = useState<string>("")
+  const [addressText, setAddressText] = useState<string>("")
   const [locationError, setLocationError] = useState("")
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [deliveryFee, setDeliveryFee] = useState<number>(0)
+
+  // Add new address form state inside checkout
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(false)
+  const [newTitle, setNewTitle] = useState("")
+  const [newAddress, setNewAddress] = useState("")
 
   // Emergency Delivery State
   const [isEmergency, setIsEmergency] = useState(false)
@@ -136,6 +144,26 @@ export function CheckoutForm({
     }
   }, [])
 
+  // Sync active address from Zustand persist store
+  useEffect(() => {
+    const activeAddr = getActiveAddress()
+    if (activeAddr) {
+      setAddressText(activeAddr.address)
+      setLocation({ lat: activeAddr.lat, lng: activeAddr.lng })
+      setLocationName(activeAddr.locality)
+      if (warehouse) {
+        const dist = calculateDistanceKm(activeAddr.lat, activeAddr.lng, warehouse.lat, warehouse.lng)
+        setDistanceKm(dist)
+        if (dist > warehouse.radius_km) {
+          setLocationError(`Sorry, you are outside our delivery zone. Maximum radius is ${warehouse.radius_km}km, but you are ${dist.toFixed(1)}km away.`)
+        } else {
+          setLocationError("")
+          setDeliveryFee(calculateDeliveryFee(dist))
+        }
+      }
+    }
+  }, [activeAddressId, warehouse, getActiveAddress])
+
   const handleDayChange = (day: "today" | "tomorrow") => {
     setSelectedDay(day)
     const now = new Date()
@@ -186,10 +214,29 @@ export function CheckoutForm({
           const rawLocality = address.suburb || address.neighbourhood || address.road || address.residential || address.village || address.town || "Jowai"
           const preciseLocality = resolveJowaiLocality(lat, lng, rawLocality)
           setLocationName(preciseLocality)
+
+          // Save permanently to Zustand store
+          addAddress({
+            title: `GPS (${preciseLocality})`,
+            address: `${preciseLocality}, Jowai, Meghalaya`,
+            locality: preciseLocality,
+            lat,
+            lng,
+            isDefault: true
+          })
+
           toast.success(`Deliver to ${preciseLocality}! 📍`)
         } catch (err) {
           const preciseLocality = resolveJowaiLocality(lat, lng)
           setLocationName(preciseLocality)
+          addAddress({
+            title: `GPS (${preciseLocality})`,
+            address: `${preciseLocality}, Jowai, Meghalaya`,
+            locality: preciseLocality,
+            lat,
+            lng,
+            isDefault: true
+          })
           toast.success(`Deliver to ${preciseLocality}! 📍`)
         }
 
@@ -217,6 +264,28 @@ export function CheckoutForm({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
+  }
+
+  const handleAddNewAddressSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTitle.trim() || !newAddress.trim()) {
+      toast.error("Please enter both title and address")
+      return
+    }
+
+    addAddress({
+      title: newTitle.trim(),
+      address: newAddress.trim(),
+      locality: resolveJowaiLocality(25.4508, 92.1868, newAddress.trim()),
+      lat: 25.4508,
+      lng: 92.1868,
+      isDefault: true
+    })
+
+    toast.success("New address added permanently! 🏡")
+    setNewTitle("")
+    setNewAddress("")
+    setIsAddingNewAddress(false)
   }
 
   const handleApplyCustomCoupon = (e: React.MouseEvent) => {
@@ -387,12 +456,96 @@ export function CheckoutForm({
             </div>
 
             <div className="space-y-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Complete Delivery Address</label>
-                <Textarea name="address" required placeholder="House No, Street, Landmark, Area" rows={3} className="rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all p-6 text-lg font-medium shadow-inner" />
+              {/* Permanent Saved Addresses Management */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Permanent Saved Addresses</label>
+                  {!isAddingNewAddress && (
+                    <Button variant="ghost" size="sm" onClick={() => setIsAddingNewAddress(true)} className="text-primary hover:text-primary/80 font-bold text-xs gap-1 px-2.5 py-1 h-8 rounded-xl">
+                      <Plus className="w-3.5 h-3.5" /> Add New Address
+                    </Button>
+                  )}
+                </div>
+
+                {isAddingNewAddress ? (
+                  <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 shadow-inner animate-fadeIn">
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">Add New Permanent Address</h4>
+                    <Input 
+                      placeholder="Address Title (e.g. Mom's House, Work)" 
+                      value={newTitle} 
+                      onChange={e => setNewTitle(e.target.value)}
+                      className="h-12 rounded-xl bg-white border-slate-200 font-medium text-sm"
+                    />
+                    <Textarea 
+                      placeholder="Complete Street Address & Landmark" 
+                      rows={2} 
+                      value={newAddress} 
+                      onChange={e => setNewAddress(e.target.value)}
+                      className="rounded-xl bg-white border-slate-200 font-medium text-sm"
+                    />
+                    <div className="flex gap-2 justify-end pt-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingNewAddress(false)} className="rounded-xl font-bold text-xs h-10 px-4">Cancel</Button>
+                      <Button type="button" size="sm" onClick={handleAddNewAddressSubmit} className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs h-10 px-5 shadow-md">Save Permanent Address</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {addresses.map((addr) => {
+                      const isSelected = activeAddressId === addr.id
+                      return (
+                        <div 
+                          key={addr.id} 
+                          onClick={() => {
+                            setActiveAddress(addr.id)
+                            toast.success(`Active address switched to ${addr.title || addr.locality}`)
+                          }}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-4 shadow-sm ${
+                            isSelected ? 'bg-primary/5 border-primary shadow-md shadow-primary/5' : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3.5 overflow-hidden">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                              isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-bold text-sm leading-none ${isSelected ? 'text-primary' : 'text-slate-900'}`}>{addr.title || addr.locality}</h4>
+                                {isSelected && <Badge className="bg-primary text-white font-bold border-none px-2 py-0.5 text-[10px] rounded-md shadow-sm">Active</Badge>}
+                              </div>
+                              <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">{addr.address}</p>
+                            </div>
+                          </div>
+
+                          {addresses.length > 1 && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteAddress(addr.id)
+                                toast.success("Address deleted permanently")
+                              }} 
+                              className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl h-9 w-9 shrink-0 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Complete Delivery Address</label>
+                <Textarea name="address" required value={addressText} onChange={e => setAddressText(e.target.value)} placeholder="House No, Street, Landmark, Area" rows={3} className="rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all p-6 text-lg font-medium shadow-inner" />
+              </div>
+
+              <div className="space-y-3 pt-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">GPS Feasibility Verification</label>
                 <Button 
                   type="button" 
@@ -600,7 +753,7 @@ export function CheckoutForm({
 
           {/* STEP 4: SWIGGY OFFERS, PROMOTIONS & LOYALTY BENEFITS */}
           <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-3 h-full bg-emerald-500" />
+            <div className="absolute top-0 left-0 w-3 h-full bg-emerald-50" />
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
                 <Gift className="w-6 h-6" />

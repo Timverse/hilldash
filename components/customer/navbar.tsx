@@ -2,24 +2,33 @@
 
 import Link from "next/link"
 import { useCartStore } from "@/lib/store/cart"
-import { ShoppingCart, Menu, User, Search, MapPin, Loader2, ArrowRight } from "lucide-react"
+import { useAddressStore } from "@/lib/store/address"
+import { ShoppingCart, Menu, User, Search, MapPin, Loader2, Plus, Trash2, CheckCircle2, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 import { resolveJowaiLocality } from "@/lib/utils/distance"
 
 export function CustomerNavbar() {
   const items = useCartStore((state) => state.items)
+  const { addresses, activeAddressId, addAddress, deleteAddress, setActiveAddress, getActiveAddress } = useAddressStore()
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [locationName, setLocationName] = useState<string>("Click to set location")
   const [locating, setLocating] = useState<boolean>(false)
   const [openMobileMenu, setOpenMobileMenu] = useState(false)
+  const [openAddressModal, setOpenAddressModal] = useState(false)
+
+  // Add new address form state
+  const [isAddingNew, setIsAddingNew] = useState(false)
+  const [newTitle, setNewTitle] = useState("")
+  const [newAddress, setNewAddress] = useState("")
 
   useEffect(() => {
     setMounted(true)
@@ -29,7 +38,6 @@ export function CustomerNavbar() {
     }
     window.addEventListener("scroll", handleScroll)
 
-    // Check if user is logged in
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
@@ -37,6 +45,9 @@ export function CustomerNavbar() {
 
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const activeAddress = getActiveAddress()
+  const displayLocality = mounted ? (activeAddress?.locality || "Jowai Central") : "Loading..."
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -65,13 +76,32 @@ export function CustomerNavbar() {
             "Jowai, Meghalaya"
 
           const preciseLocality = resolveJowaiLocality(latitude, longitude, rawLocality)
-          setLocationName(preciseLocality)
-          toast.success(`Precise location set: ${preciseLocality}! 📍`)
+          
+          // Add or update to permanent Zustand store
+          addAddress({
+            title: `GPS (${preciseLocality})`,
+            address: `${preciseLocality}, Jowai, Meghalaya`,
+            locality: preciseLocality,
+            lat: latitude,
+            lng: longitude,
+            isDefault: true
+          })
+
+          toast.success(`Precise location set permanently: ${preciseLocality}! 📍`)
+          setOpenAddressModal(false)
         } catch (err) {
           console.error("Reverse geocoding error:", err)
           const preciseLocality = resolveJowaiLocality(latitude, longitude)
-          setLocationName(preciseLocality)
-          toast.success(`Precise location set: ${preciseLocality}! 📍`)
+          addAddress({
+            title: `GPS (${preciseLocality})`,
+            address: `${preciseLocality}, Jowai, Meghalaya`,
+            locality: preciseLocality,
+            lat: latitude,
+            lng: longitude,
+            isDefault: true
+          })
+          toast.success(`Precise location set permanently: ${preciseLocality}! 📍`)
+          setOpenAddressModal(false)
         } finally {
           setLocating(false)
         }
@@ -83,6 +113,29 @@ export function CustomerNavbar() {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
+  }
+
+  const handleAddNewAddressSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTitle.trim() || !newAddress.trim()) {
+      toast.error("Please enter both title and address")
+      return
+    }
+
+    // Default Jowai coordinates approximation
+    addAddress({
+      title: newTitle.trim(),
+      address: newAddress.trim(),
+      locality: resolveJowaiLocality(25.4508, 92.1868, newAddress.trim()),
+      lat: 25.4508,
+      lng: 92.1868,
+      isDefault: true
+    })
+
+    toast.success("New address added permanently! 🏡")
+    setNewTitle("")
+    setNewAddress("")
+    setIsAddingNew(false)
   }
 
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0)
@@ -120,21 +173,125 @@ export function CustomerNavbar() {
             />
           </form>
 
-          {/* Location - Desktop */}
-          <div
-            onClick={handleGetLocation}
-            className="hidden lg:flex items-center gap-3 px-5 py-2.5 bg-slate-50 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all duration-300 active:scale-95 group shadow-sm shrink-0"
-          >
-            {locating ? (
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            ) : (
-              <MapPin className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
-            )}
-            <div className="text-xs">
-              <p className="text-slate-400 font-medium leading-none">Deliver to</p>
-              <p className="text-slate-900 font-extrabold leading-none mt-1 capitalize line-clamp-1 max-w-[140px]">{locationName}</p>
-            </div>
-          </div>
+          {/* Location Management Modal Trigger */}
+          <Dialog open={openAddressModal} onOpenChange={setOpenAddressModal}>
+            <DialogTrigger asChild>
+              <div className="hidden lg:flex items-center gap-3 px-5 py-2.5 bg-slate-50 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all duration-300 active:scale-95 group shadow-sm shrink-0">
+                <MapPin className="w-4 h-4 text-primary group-hover:scale-110 transition-transform duration-300" />
+                <div className="text-xs">
+                  <p className="text-slate-400 font-medium leading-none">Deliver to</p>
+                  <p className="text-slate-900 font-extrabold leading-none mt-1 capitalize line-clamp-1 max-w-[140px]">
+                    {displayLocality}
+                  </p>
+                </div>
+              </div>
+            </DialogTrigger>
+            <DialogContent className="w-[92%] max-w-md bg-white p-8 rounded-[3rem] font-sans antialiased border border-slate-100 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                  <MapPin className="w-6 h-6 text-primary" /> Delivery Addresses
+                </DialogTitle>
+                <p className="text-sm text-slate-500 font-medium mt-1">Select an active address or permanently add new delivery locations.</p>
+              </DialogHeader>
+
+              {/* Instant GPS Auto-Detect Button */}
+              <Button 
+                type="button" 
+                onClick={handleGetLocation} 
+                disabled={locating}
+                className="w-full h-14 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-base shadow-sm gap-2 transition-all"
+              >
+                {locating ? <><Loader2 className="w-5 h-5 animate-spin mr-1" /> Auto-Detecting GPS...</> : <><Navigation className="w-5 h-5 text-emerald-600 mr-1" /> Auto-Detect Current GPS Location</>}
+              </Button>
+
+              {/* Saved Addresses List */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Permanent Saved Addresses</label>
+                  {!isAddingNew && (
+                    <Button variant="ghost" size="sm" onClick={() => setIsAddingNew(true)} className="text-primary hover:text-primary/80 font-bold text-xs gap-1 px-2.5 py-1 h-8 rounded-xl">
+                      <Plus className="w-3.5 h-3.5" /> Add New
+                    </Button>
+                  )}
+                </div>
+
+                {isAddingNew ? (
+                  <form onSubmit={handleAddNewAddressSubmit} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 shadow-inner animate-fadeIn">
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">Add New Permanent Address</h4>
+                    <Input 
+                      required 
+                      placeholder="Address Title (e.g. Mom's House, Work)" 
+                      value={newTitle} 
+                      onChange={e => setNewTitle(e.target.value)}
+                      className="h-12 rounded-xl bg-white border-slate-200 font-medium text-sm"
+                    />
+                    <Textarea 
+                      required 
+                      placeholder="Complete Street Address & Landmark" 
+                      rows={2} 
+                      value={newAddress} 
+                      onChange={e => setNewAddress(e.target.value)}
+                      className="rounded-xl bg-white border-slate-200 font-medium text-sm"
+                    />
+                    <div className="flex gap-2 justify-end pt-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingNew(false)} className="rounded-xl font-bold text-xs h-10 px-4">Cancel</Button>
+                      <Button type="submit" size="sm" className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs h-10 px-5 shadow-md">Save Permanent Address</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3">
+                    {addresses.map((addr) => {
+                      const isSelected = activeAddressId === addr.id
+                      return (
+                        <div 
+                          key={addr.id} 
+                          onClick={() => {
+                            setActiveAddress(addr.id)
+                            toast.success(`Active address switched to ${addr.title || addr.locality}`)
+                            setOpenAddressModal(false)
+                          }}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-4 shadow-sm ${
+                            isSelected ? 'bg-primary/5 border-primary shadow-md shadow-primary/5' : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3.5 overflow-hidden">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                              isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                            <div className="overflow-hidden">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-bold text-sm leading-none ${isSelected ? 'text-primary' : 'text-slate-900'}`}>{addr.title || addr.locality}</h4>
+                                {isSelected && <Badge className="bg-primary text-white font-bold border-none px-2 py-0.5 text-[10px] rounded-md shadow-sm">Active</Badge>}
+                              </div>
+                              <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">{addr.address}</p>
+                            </div>
+                          </div>
+
+                          {addresses.length > 1 && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteAddress(addr.id)
+                                toast.success("Address deleted permanently")
+                              }} 
+                              className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl h-9 w-9 shrink-0 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Actions - Beautifully Spaced Horizontally */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">

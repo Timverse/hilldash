@@ -35,7 +35,8 @@ export default async function CheckoutPage() {
     .from('global_settings')
     .select('*')
 
-  const emergencyEnabled = settings?.find(s => s.key === 'emergency_delivery_enabled')?.value === 'true'
+  const emergencySetting = settings?.find(s => s.key === 'emergency_delivery_enabled')?.value
+  const emergencyEnabled = emergencySetting === undefined || emergencySetting === 'true'
   const emergencyFee = parseFloat(settings?.find(s => s.key === 'emergency_delivery_fee')?.value || '20')
 
   return (

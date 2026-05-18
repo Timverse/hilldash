@@ -14,7 +14,8 @@ export function SettingsForm({ initialSettings }: { initialSettings: any[] }) {
   const [logoPreview, setLogoPreview] = useState<string | null>(currentLogo || null)
 
   // Emergency Delivery Settings State
-  const initialEmergencyEnabled = initialSettings.find(s => s.key === 'emergency_delivery_enabled')?.value === 'true'
+  const initialEmergencySetting = initialSettings.find(s => s.key === 'emergency_delivery_enabled')?.value
+  const initialEmergencyEnabled = initialEmergencySetting === undefined || initialEmergencySetting === 'true'
   const initialEmergencyFee = initialSettings.find(s => s.key === 'emergency_delivery_fee')?.value || '20'
   const [emergencyEnabled, setEmergencyEnabled] = useState(initialEmergencyEnabled)
   const [emergencyFee, setEmergencyFee] = useState(initialEmergencyFee)
