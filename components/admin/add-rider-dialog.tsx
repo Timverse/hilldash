@@ -59,6 +59,11 @@ export function AddRiderDialog({ warehouses }: { warehouses: Warehouse[] }) {
           </div>
 
           <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">User ID (Supabase Auth UUID)</label>
+            <Input name="user_id" required placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000" className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-900 font-medium font-mono text-xs" />
+          </div>
+
+          <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Assigned Hub / Warehouse</label>
             <select name="warehouse_id" required className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600">
               {warehouses.map(w => (

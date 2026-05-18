@@ -19,7 +19,8 @@ export default async function AdminRidersPage() {
     const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user.id).single();
     userRole = profile?.role || 'admin';
 
-    if (userRole === 'warehouse_admin') {
+    // Superadmins and warehouse_admins can only view their assigned hub riders info
+    if (userRole === 'superadmin' || userRole === 'warehouse_admin') {
       const { data: assignment } = await adminClient
         .from('user_warehouse_assignments')
         .select('warehouse_id')
@@ -33,6 +34,7 @@ export default async function AdminRidersPage() {
   }
 
   // Fetch riders with warehouse info using adminClient to ensure we get all records regardless of RLS
+  // Owner sees all hubs; Superadmins see only assigned hub
   let query = adminClient.from('riders').select('*, warehouses(name)').order('name');
   if (assignedWarehouseId) {
     query = query.eq('warehouse_id', assignedWarehouseId);
