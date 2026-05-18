@@ -166,6 +166,28 @@ export async function processCheckoutAction(formData: FormData) {
     }
   }
 
+  // REAL-TIME FINANCE LEDGER UPDATE: "UPI paid instantly should reflect in the finance sales +"
+  if (paymentMethod === 'online') {
+    const { error: financeError } = await adminClient
+      .from('business_finance_reports')
+      .insert({
+        transaction_type: 'income',
+        category: 'order_revenue',
+        amount: finalTotal,
+        payment_method: 'online',
+        description: `Order #${order.id.slice(0, 8).toUpperCase()} Revenue (Online / UPI)`,
+        reference_id: order.id,
+        created_at: new Date().toISOString(),
+        recorded_by: 'Automated Checkout'
+      })
+
+    if (financeError) {
+      console.error('Failed to log online order revenue in finance ledger:', financeError)
+    } else {
+      console.log('Logged online order revenue in finance ledger successfully')
+    }
+  }
+
   // EARN RANDOM LOYALTY POINTS (1-100 with 0.001 probability of 100) using adminClient to bypass RLS
   let earnedPoints = 0
   if (user) {
@@ -196,6 +218,7 @@ export async function processCheckoutAction(formData: FormData) {
 
   revalidatePath('/dashboard', 'page')
   revalidatePath('/dashboard/orders', 'page')
+  revalidatePath('/dashboard/finance', 'page')
   revalidatePath('/account', 'page')
   
   console.log('Order created successfully:', order.id)
