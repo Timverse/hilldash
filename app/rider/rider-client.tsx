@@ -80,14 +80,14 @@ export function RiderClient({
 
         if (payload.eventType === 'INSERT') {
           const newOrder = payload.new;
-          if (newOrder?.status === 'packed' || newOrder?.status === 'out_for_delivery') {
+          if ((newOrder?.status === 'packed' || newOrder?.status === 'out_for_delivery') && (!riderProfile?.warehouse_id || newOrder.warehouse_id === riderProfile.warehouse_id)) {
             setOrders(prev => [newOrder, ...prev]);
             toast.success('📦 New Dispatch Alert: Order is ready for delivery!');
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedOrder = payload.new;
           
-          if (updatedOrder?.status === 'packed' || updatedOrder?.status === 'out_for_delivery') {
+          if ((updatedOrder?.status === 'packed' || updatedOrder?.status === 'out_for_delivery') && (!riderProfile?.warehouse_id || updatedOrder.warehouse_id === riderProfile.warehouse_id)) {
             setOrders(prev => {
               const exists = prev.some(o => o.id === updatedOrder.id);
               if (exists) {
@@ -100,7 +100,7 @@ export function RiderClient({
           } else {
             setOrders(prev => prev.filter(o => o.id !== updatedOrder?.id));
 
-            if (updatedOrder?.status === 'delivered') {
+            if (updatedOrder?.status === 'delivered' && (!riderProfile?.warehouse_id || updatedOrder.warehouse_id === riderProfile.warehouse_id)) {
               setCompleted(prev => {
                 if (!prev.some(c => c.id === updatedOrder.id)) {
                   toast.success('🎉 Delivery Confirmed! Commission added to your earnings.');
@@ -121,7 +121,7 @@ export function RiderClient({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, riderProfile]);
 
   // Toggle Work Status (Online / Stop Work for Now)
   const handleToggleWorkStatus = async () => {

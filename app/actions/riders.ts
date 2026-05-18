@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export async function addRiderAction(formData: FormData) {
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   const name = formData.get('name') as string;
   const phone = formData.get('phone') as string;
@@ -15,7 +15,7 @@ export async function addRiderAction(formData: FormData) {
     return { error: 'Please fill in all required fields' };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('riders')
     .insert({
       name,
