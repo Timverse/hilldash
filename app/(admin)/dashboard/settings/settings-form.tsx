@@ -72,8 +72,8 @@ export function SettingsForm({ initialSettings }: { initialSettings: any[] }) {
                 <span className="text-xs font-bold">Upload Logo</span>
               </div>
             )}
-            <input 
-              type="file" 
+            <input
+              type="file"
               name="logo"
               accept="image/*"
               onChange={handleImageChange}
@@ -100,12 +100,12 @@ export function SettingsForm({ initialSettings }: { initialSettings: any[] }) {
             </div>
             <div>
               <h3 className="text-xl font-black text-slate-900 tracking-tight">Emergency Delivery Mode</h3>
-              <p className="text-sm text-slate-500 font-medium mt-0.5">Enable Swiggy Genie / Blinkit lightning fast delivery (15-20 Mins).</p>
+              <p className="text-sm text-slate-500 font-medium mt-0.5">Enable lightning fast delivery (15-20 Mins).</p>
             </div>
           </div>
-          <Switch 
-            checked={emergencyEnabled} 
-            onCheckedChange={setEmergencyEnabled} 
+          <Switch
+            checked={emergencyEnabled}
+            onCheckedChange={setEmergencyEnabled}
           />
         </div>
 
@@ -115,12 +115,12 @@ export function SettingsForm({ initialSettings }: { initialSettings: any[] }) {
               <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1 flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-amber-500" /> Emergency Delivery Fee (₹)
               </label>
-              <Input 
+              <Input
                 type="number"
                 value={emergencyFee}
                 onChange={(e) => setEmergencyFee(e.target.value)}
-                placeholder="20" 
-                className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:bg-white transition-all px-6 text-lg font-black text-slate-900 shadow-inner" 
+                placeholder="20"
+                className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:bg-white transition-all px-6 text-lg font-black text-slate-900 shadow-inner"
               />
               <p className="text-xs text-slate-400 font-medium px-1">Extra fee added to checkout when emergency delivery is selected.</p>
             </div>

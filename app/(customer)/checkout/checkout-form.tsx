@@ -60,8 +60,8 @@ export function CheckoutForm({
   const { addresses, activeAddressId, setActiveAddress, addAddress, deleteAddress, getActiveAddress } = useAddressStore()
   const [mounted, setMounted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: warehouse?.lat || 25.4508, lng: warehouse?.lng || 92.1868 })
-  const [locationName, setLocationName] = useState<string>("Jowai Central")
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationName, setLocationName] = useState<string>("")
   const [addressText, setAddressText] = useState<string>("")
   const [locationError, setLocationError] = useState("")
   const [isGettingLocation, setIsGettingLocation] = useState(false)
@@ -163,13 +163,6 @@ export function CheckoutForm({
           setDeliveryFee(calculateDeliveryFee(dist))
         }
       }
-    } else {
-      const defaultLat = warehouse?.lat || 25.4508;
-      const defaultLng = warehouse?.lng || 92.1868;
-      setLocation({ lat: defaultLat, lng: defaultLng });
-      setLocationName("Jowai Central");
-      setDistanceKm(0);
-      setDeliveryFee(0);
     }
   }, [activeAddressId, warehouse, getActiveAddress])
 
@@ -196,14 +189,8 @@ export function CheckoutForm({
     setLocationError("")
     
     if (!navigator.geolocation) {
-      const defaultLat = warehouse?.lat || 25.4508;
-      const defaultLng = warehouse?.lng || 92.1868;
-      setLocation({ lat: defaultLat, lng: defaultLng });
-      setLocationName("Jowai Central");
-      setDistanceKm(0);
-      setDeliveryFee(0);
       setIsGettingLocation(false);
-      toast.success("Default Jowai delivery zone selected.");
+      toast.error("Geolocation is not supported by your browser. Please enter your address manually.");
       return;
     }
 
@@ -234,7 +221,7 @@ export function CheckoutForm({
             isDefault: true
           })
 
-          toast.success(`Deliver to ${preciseLocality}! 📍`)
+          toast.success(`Precise GPS captured for ${preciseLocality}! 📍`)
         } catch (err) {
           const preciseLocality = resolveJowaiLocality(lat, lng)
           setLocationName(preciseLocality)
@@ -246,7 +233,7 @@ export function CheckoutForm({
             lng,
             isDefault: true
           })
-          toast.success(`Deliver to ${preciseLocality}! 📍`)
+          toast.success(`Precise GPS captured for ${preciseLocality}! 📍`)
         }
 
         if (warehouse) {
@@ -262,14 +249,8 @@ export function CheckoutForm({
         }
       },
       (error) => {
-        const defaultLat = warehouse?.lat || 25.4508;
-        const defaultLng = warehouse?.lng || 92.1868;
-        setLocation({ lat: defaultLat, lng: defaultLng });
-        setLocationName("Jowai Central");
-        setDistanceKm(0);
-        setDeliveryFee(0);
         setIsGettingLocation(false);
-        toast.success("Location bypassed. Selected default Jowai delivery zone.");
+        toast.error("Please enable GPS/location permissions in your browser so riders can navigate precisely to your doorstep.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
@@ -278,21 +259,26 @@ export function CheckoutForm({
   const handleAddNewAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle.trim() || !newAddress.trim()) {
-      toast.error("Please enter both title and address")
+      toast.error("Please enter both title and address details")
+      return
+    }
+
+    if (!location) {
+      toast.error("Please click 'Capture Precise GPS' so riders can navigate exactly to your doorstep.")
       return
     }
 
     addAddress({
       title: newTitle.trim(),
       address: newAddress.trim(),
-      locality: resolveJowaiLocality(25.4508, 92.1868, newAddress.trim()),
-      lat: warehouse?.lat || 25.4508,
-      lng: warehouse?.lng || 92.1868,
+      locality: resolveJowaiLocality(location.lat, location.lng, newAddress.trim()),
+      lat: location.lat,
+      lng: location.lng,
       isDefault: true
     })
 
     setAddressText(newAddress.trim())
-    toast.success("New address added permanently! 🏡")
+    toast.success("New address added permanently with precise GPS! 🏡")
     setNewTitle("")
     setNewAddress("")
     setIsAddingNewAddress(false)
@@ -325,7 +311,7 @@ export function CheckoutForm({
     e.preventDefault()
     
     if (!location) {
-      toast.error("Please verify your delivery location before placing order.")
+      toast.error("Please tap 'Tap for Precise GPS Location' or select a saved address so riders can navigate exactly to your doorstep.")
       return
     }
 
@@ -479,7 +465,7 @@ export function CheckoutForm({
 
                 {isAddingNewAddress ? (
                   <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 shadow-inner animate-fadeIn">
-                    <h4 className="font-bold text-slate-900 text-sm mb-1">Add New Permanent Address</h4>
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">Add New Permanent Address (Amazon Style)</h4>
                     <Input 
                       placeholder="Address Title (e.g. Mom's House, Work)" 
                       value={newTitle} 
@@ -487,15 +473,28 @@ export function CheckoutForm({
                       className="h-12 rounded-xl bg-white border-slate-200 font-medium text-sm"
                     />
                     <Textarea 
-                      placeholder="Complete Street Address & Landmark" 
+                      placeholder="Complete Street Address, Flat/House No & Landmark" 
                       rows={2} 
                       value={newAddress} 
                       onChange={e => setNewAddress(e.target.value)}
                       className="rounded-xl bg-white border-slate-200 font-medium text-sm"
                     />
-                    <div className="flex gap-2 justify-end pt-1">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingNewAddress(false)} className="rounded-xl font-bold text-xs h-10 px-4">Cancel</Button>
-                      <Button type="button" size="sm" onClick={handleAddNewAddressSubmit} className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs h-10 px-5 shadow-md">Save Permanent Address</Button>
+                    <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={getLocation} 
+                        disabled={isGettingLocation}
+                        className={`rounded-xl font-bold text-xs h-10 px-3 border-2 ${location ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-primary text-primary hover:bg-primary/5'}`}
+                      >
+                        <MapPin className="w-3.5 h-3.5 mr-1.5" /> 
+                        {isGettingLocation ? "Locating GPS..." : location ? "GPS Captured ✓" : "Capture Precise GPS"}
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingNewAddress(false)} className="rounded-xl font-bold text-xs h-10 px-4">Cancel</Button>
+                        <Button type="button" size="sm" onClick={handleAddNewAddressSubmit} className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs h-10 px-5 shadow-md">Save Address</Button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -556,7 +555,7 @@ export function CheckoutForm({
               </div>
 
               <div className="space-y-3 pt-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">GPS Feasibility Verification</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Precise GPS Verification (Mandatory for Riders)</label>
                 <Button 
                   type="button" 
                   variant="outline"
@@ -566,14 +565,14 @@ export function CheckoutForm({
                       : 'border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5'
                   }`}
                   onClick={getLocation}
-                  disabled={isGettingLocation || location !== null}
+                  disabled={isGettingLocation}
                 >
                   {isGettingLocation ? (
-                    <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Locating (Auto-fallback in 5s)...</>
+                    <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Locating precise GPS coordinates...</>
                   ) : location ? (
-                    <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> Deliver to {locationName || "Jowai"} (Verified)</>
+                    <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> GPS Verified: {locationName || "Jowai"} (Click to update)</>
                   ) : (
-                    <><MapPin className="w-6 h-6 mr-3" /> Tap for Instant GPS Verification</>
+                    <><MapPin className="w-6 h-6 mr-3" /> Tap for Precise GPS Location (Required)</>
                   )}
                 </Button>
                 
@@ -591,7 +590,7 @@ export function CheckoutForm({
                 {!location && !locationError && (
                   <div className="flex items-center gap-2 px-1 text-slate-400 font-medium">
                     <Info className="w-4 h-4 shrink-0" />
-                    <p className="text-xs italic">Swiggy-style instant GPS verification ensures accurate rider assignment.</p>
+                    <p className="text-xs italic">Precise GPS verification is mandatory so our delivery riders can navigate directly to your doorstep.</p>
                   </div>
                 )}
               </div>
