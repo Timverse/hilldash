@@ -54,3 +54,19 @@ FROM public.profiles WHERE email = 'worker@example.com'
 ON CONFLICT (id) DO UPDATE 
 SET status = 'available', warehouse_id = EXCLUDED.warehouse_id;
 ```
+
+---
+
+### 🔐 4. Enable Rider Daily Audit & Earnings Verification Schema
+Run this snippet once in your Supabase SQL Editor to add the daily payout audit columns to your existing `riders` table. This allows riders to generate receipts with Token IDs and superadmins to verify/insert their earnings daily.
+
+```sql
+ALTER TABLE public.riders 
+ADD COLUMN IF NOT EXISTS active_token_id TEXT,
+ADD COLUMN IF NOT EXISTS pending_earnings NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS pending_deliveries INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS receipt_generated_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS daily_earnings NUMERIC DEFAULT 0,
+ADD COLUMN IF NOT EXISTS daily_deliveries INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS last_payout_date TIMESTAMPTZ;
+```
