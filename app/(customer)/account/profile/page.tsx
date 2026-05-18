@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,17 +10,36 @@ export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
+  let { data: profile } = await adminClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
+
+  if (!profile) {
+    const fullName = user.user_metadata?.full_name || user.user_metadata?.name || 'Sawaïom Member'
+    const phone = user.user_metadata?.phone || null
+    
+    const { data: newProfile } = await adminClient.from('profiles').upsert({
+      id: user.id,
+      email: user.email,
+      full_name: fullName,
+      phone: phone,
+      role: 'customer',
+      is_active: true,
+      points: 100, // 100 Welcome Points
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' }).select().single()
+    
+    profile = newProfile
+  }
 
   return (
     <div className="bg-slate-50/50 min-h-screen py-12 font-sans antialiased">

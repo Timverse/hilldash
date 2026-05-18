@@ -172,15 +172,25 @@ export async function processCheckoutAction(formData: FormData) {
     const isJackpot = Math.random() < 0.001
     earnedPoints = isJackpot ? 100 : Math.floor(Math.random() * 100) + 1
 
-    const { data: profile } = await adminClient.from('profiles').select('points').eq('id', user.id).single()
+    const { data: profile } = await adminClient.from('profiles').select('points, full_name, phone, role').eq('id', user.id).single()
     const currentPoints = profile?.points || 0
     const newPoints = currentPoints - pointsApplied + earnedPoints
     
-    const { error: updateError } = await adminClient.from('profiles').update({ points: newPoints }).eq('id', user.id)
+    const { error: updateError } = await adminClient.from('profiles').upsert({
+      id: user.id,
+      email: userEmail,
+      full_name: profile?.full_name || name || 'Sawaïom Member',
+      phone: profile?.phone || phone || null,
+      role: profile?.role || 'customer',
+      is_active: true,
+      points: newPoints,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' })
+
     if (updateError) {
-      console.error('Failed to update user points with adminClient:', updateError)
+      console.error('Failed to upsert user points with adminClient:', updateError)
     } else {
-      console.log(`Updated points for user ${user.id} via adminClient: ${currentPoints} - ${pointsApplied} + ${earnedPoints} = ${newPoints}`)
+      console.log(`Upserted points for user ${user.id} via adminClient: ${currentPoints} - ${pointsApplied} + ${earnedPoints} = ${newPoints}`)
     }
   }
 

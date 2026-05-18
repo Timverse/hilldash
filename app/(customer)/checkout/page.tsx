@@ -2,9 +2,11 @@ import { CheckoutForm } from "./checkout-form"
 import { ShoppingBag, ChevronLeft } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 export default async function CheckoutPage() {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
   const { data: warehouse } = await supabase
     .from('warehouses')
     .select('id, lat, lng, radius_km, name')
@@ -15,7 +17,22 @@ export default async function CheckoutPage() {
   const { data: { user } } = await supabase.auth.getUser()
   let userPoints = 0
   if (user) {
-    const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single()
+    let { data: profile } = await adminClient.from('profiles').select('points').eq('id', user.id).single()
+    if (!profile) {
+      const fullName = user.user_metadata?.full_name || user.user_metadata?.name || 'Sawaïom Member'
+      const phone = user.user_metadata?.phone || null
+      const { data: newProfile } = await adminClient.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: fullName,
+        phone: phone,
+        role: 'customer',
+        is_active: true,
+        points: 100, // 100 Welcome Points
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' }).select('points').single()
+      profile = newProfile
+    }
     userPoints = profile?.points || 0
   }
 
