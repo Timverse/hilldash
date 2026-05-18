@@ -1,6 +1,6 @@
 # How to Enable Supabase Realtime via SQL
 
-By default, Supabase does **not** broadcast database changes over WebSockets for security and performance reasons. To make your live orders, delivery riders, and inventory update instantly without refreshing the page, you must add those tables to the `supabase_realtime` publication.
+By default, Supabase does **not** broadcast database changes over WebSockets for security and performance reasons. To make your live orders, delivery riders, inventory, and finance ledger update instantly without refreshing the page, you must add those tables to the `supabase_realtime` publication.
 
 ### 📋 Instructions:
 1. Open your [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql).
@@ -12,7 +12,7 @@ By default, Supabase does **not** broadcast database changes over WebSockets for
 ```sql
 -- ====================================================================
 -- ENABLE SUPABASE REALTIME BROADCASTS
--- Configures WebSockets for live orders, riders, products, and discounts
+-- Configures WebSockets for live orders, riders, products, discounts, and finance ledger
 -- ====================================================================
 
 BEGIN;
@@ -25,7 +25,8 @@ CREATE PUBLICATION supabase_realtime FOR TABLE
     public.orders, 
     public.riders, 
     public.products, 
-    public.discounts;
+    public.discounts,
+    public.business_finance_reports;
 
 COMMIT;
 
@@ -39,6 +40,6 @@ WHERE pubname = 'supabase_realtime';
 
 ### 🔍 What This SQL Does
 * **`DROP PUBLICATION IF EXISTS`**: Resets the real-time tracker cleanly so you don't get errors if some tables were already added.
-* **`CREATE PUBLICATION supabase_realtime`**: Tells PostgreSQL to instantly broadcast all `INSERT`, `UPDATE`, and `DELETE` events for `orders`, `riders`, `products`, and `discounts` over WebSockets to your Next.js admin dashboard.
+* **`CREATE PUBLICATION supabase_realtime`**: Tells PostgreSQL to instantly broadcast all `INSERT`, `UPDATE`, and `DELETE` events for `orders`, `riders`, `products`, `discounts`, and `business_finance_reports` over WebSockets to your Next.js admin dashboard.
 
-Once executed, your **Live Orders** (`/dashboard/orders`) and **Delivery Personnel** (`/dashboard/riders`) pages will immediately start receiving live pop-up alerts and table updates!
+Once executed, your **Finance Ledger** (`/dashboard/finance`), **Live Orders** (`/dashboard/orders`), and **Delivery Personnel** (`/dashboard/riders`) pages will immediately start receiving live pop-up alerts and table updates!
