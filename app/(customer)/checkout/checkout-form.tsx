@@ -51,24 +51,24 @@ const TIME_SLOTS = [
 ]
 
 export function CheckoutForm({ 
-  warehouse, userPoints = 0, discounts = [], products = [], emergencyEnabled = false, emergencyFee = 20 
+  warehouse, userPoints = 0, userProfile = null, discounts = [], products = [], emergencyEnabled = false, emergencyFee = 20 
 }: { 
-  warehouse?: Warehouse | null; userPoints?: number; discounts?: Discount[]; products?: ProductMapping[]; emergencyEnabled?: boolean; emergencyFee?: number 
+  warehouse?: Warehouse | null; userPoints?: number; userProfile?: any; discounts?: Discount[]; products?: ProductMapping[]; emergencyEnabled?: boolean; emergencyFee?: number 
 }) {
   const router = useRouter()
   const { items, getCartTotal, clearCart } = useCartStore()
   const { addresses, activeAddressId, setActiveAddress, addAddress, deleteAddress, getActiveAddress } = useAddressStore()
   const [mounted, setMounted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [locationName, setLocationName] = useState<string>("")
+  const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: warehouse?.lat || 25.4508, lng: warehouse?.lng || 92.1868 })
+  const [locationName, setLocationName] = useState<string>("Jowai Central")
   const [addressText, setAddressText] = useState<string>("")
   const [locationError, setLocationError] = useState("")
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [distanceKm, setDistanceKm] = useState<number | null>(null)
+  const [distanceKm, setDistanceKm] = useState<number | null>(0)
   const [deliveryFee, setDeliveryFee] = useState<number>(0)
 
-  // Add new address form state inside checkout
+  // Add new address form state inside checkout (Amazon Style)
   const [isAddingNewAddress, setIsAddingNewAddress] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newAddress, setNewAddress] = useState("")
@@ -144,11 +144,13 @@ export function CheckoutForm({
     }
   }, [])
 
-  // Sync active address from Zustand persist store
+  // Sync active address from Zustand persist store without autofill overwrite
   useEffect(() => {
     const activeAddr = getActiveAddress()
     if (activeAddr) {
-      setAddressText(activeAddr.address)
+      if (!addressText && activeAddr.address) {
+        setAddressText(activeAddr.address)
+      }
       setLocation({ lat: activeAddr.lat, lng: activeAddr.lng })
       setLocationName(activeAddr.locality)
       if (warehouse) {
@@ -161,6 +163,13 @@ export function CheckoutForm({
           setDeliveryFee(calculateDeliveryFee(dist))
         }
       }
+    } else {
+      const defaultLat = warehouse?.lat || 25.4508;
+      const defaultLng = warehouse?.lng || 92.1868;
+      setLocation({ lat: defaultLat, lng: defaultLng });
+      setLocationName("Jowai Central");
+      setDistanceKm(0);
+      setDeliveryFee(0);
     }
   }, [activeAddressId, warehouse, getActiveAddress])
 
@@ -215,10 +224,10 @@ export function CheckoutForm({
           const preciseLocality = resolveJowaiLocality(lat, lng, rawLocality)
           setLocationName(preciseLocality)
 
-          // Save permanently to Zustand store
+          // Save permanently to Zustand store without overwriting custom address text
           addAddress({
             title: `GPS (${preciseLocality})`,
-            address: `${preciseLocality}, Jowai, Meghalaya`,
+            address: addressText || `${preciseLocality}, Jowai, Meghalaya`,
             locality: preciseLocality,
             lat,
             lng,
@@ -231,7 +240,7 @@ export function CheckoutForm({
           setLocationName(preciseLocality)
           addAddress({
             title: `GPS (${preciseLocality})`,
-            address: `${preciseLocality}, Jowai, Meghalaya`,
+            address: addressText || `${preciseLocality}, Jowai, Meghalaya`,
             locality: preciseLocality,
             lat,
             lng,
@@ -277,11 +286,12 @@ export function CheckoutForm({
       title: newTitle.trim(),
       address: newAddress.trim(),
       locality: resolveJowaiLocality(25.4508, 92.1868, newAddress.trim()),
-      lat: 25.4508,
-      lng: 92.1868,
+      lat: warehouse?.lat || 25.4508,
+      lng: warehouse?.lng || 92.1868,
       isDefault: true
     })
 
+    setAddressText(newAddress.trim())
     toast.success("New address added permanently! 🏡")
     setNewTitle("")
     setNewAddress("")
@@ -416,11 +426,11 @@ export function CheckoutForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Full Name</label>
-                <Input name="name" required placeholder="John Doe" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
+                <Input name="name" required defaultValue={userProfile?.full_name || ""} placeholder="John Doe" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Phone Number</label>
-                <Input name="phone" required placeholder="8974319494" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
+                <Input name="phone" required defaultValue={userProfile?.phone || ""} placeholder="8974319494" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
               </div>
             </div>
           </div>

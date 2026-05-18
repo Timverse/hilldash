@@ -50,6 +50,8 @@ export async function signup(formData: FormData) {
   const password = formData.get('password') as string
   const fullName = formData.get('full_name') as string
   const phone = formData.get('phone') as string
+  const ageStr = formData.get('age') as string
+  const age = ageStr ? parseInt(ageStr, 10) : null
 
   const { data: authData, error } = await supabase.auth.signUp({
     email,
@@ -58,6 +60,7 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName,
         phone: phone,
+        age: age,
       }
     }
   })
@@ -68,7 +71,7 @@ export async function signup(formData: FormData) {
 
   // Ensure profile exists with customer role using adminClient to bypass RLS and include email
   if (authData?.user) {
-    const { error: profileError } = await adminClient.from('profiles').upsert({
+    const profilePayload: any = {
       id: authData.user.id,
       email: email,
       full_name: fullName,
@@ -76,7 +79,20 @@ export async function signup(formData: FormData) {
       role: 'customer',
       is_active: true,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' })
+    }
+    if (age !== null && !isNaN(age)) {
+      profilePayload.age = age
+    }
+
+    let { error: profileError } = await adminClient.from('profiles').upsert(profilePayload, { onConflict: 'id' })
+
+    // Fallback if age column does not exist yet in Supabase
+    if (profileError && profileError.message.includes('age')) {
+      console.warn('age column not found in profiles table, retrying upsert without age...')
+      const { age: _, ...profilePayloadWithoutAge } = profilePayload
+      const retryRes = await adminClient.from('profiles').upsert(profilePayloadWithoutAge, { onConflict: 'id' })
+      profileError = retryRes.error
+    }
 
     if (profileError) {
       console.error('Profile creation error on signup:', profileError)

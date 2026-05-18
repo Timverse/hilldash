@@ -16,8 +16,10 @@ export default async function CheckoutPage() {
 
   const { data: { user } } = await supabase.auth.getUser()
   let userPoints = 0
+  let userProfile: any = null
+
   if (user) {
-    let { data: profile } = await adminClient.from('profiles').select('points').eq('id', user.id).single()
+    let { data: profile } = await adminClient.from('profiles').select('full_name, phone, points, email').eq('id', user.id).single()
     if (!profile) {
       const fullName = user.user_metadata?.full_name || user.user_metadata?.name || 'Sawaïom Member'
       const phone = user.user_metadata?.phone || null
@@ -30,10 +32,11 @@ export default async function CheckoutPage() {
         is_active: true,
         points: 100, // 100 Welcome Points
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' }).select('points').single()
+      }, { onConflict: 'id' }).select('full_name, phone, points, email').single()
       profile = newProfile
     }
     userPoints = profile?.points || 0
+    userProfile = profile
   }
 
   // Fetch active discounts/promotions
@@ -73,6 +76,7 @@ export default async function CheckoutPage() {
         <CheckoutForm 
           warehouse={warehouse || null} 
           userPoints={userPoints} 
+          userProfile={userProfile}
           discounts={discounts || []} 
           products={products || []}
           emergencyEnabled={emergencyEnabled}
