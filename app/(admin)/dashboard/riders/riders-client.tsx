@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
-import { Bike, MapPin, Phone, UserCheck, Clock, Plus, Key, CheckCircle2, AlertCircle, Search, DollarSign, CreditCard, Banknote } from 'lucide-react';
+import { Bike, MapPin, Phone, UserCheck, Clock, Plus, Key, CheckCircle2, AlertCircle, Search, DollarSign, CreditCard, Banknote, Filter } from 'lucide-react';
 import { AddRiderDialog } from '@/components/admin/add-rider-dialog';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -25,13 +25,16 @@ const STATUS_MAP: Record<string, { label: string; badge: string }> = {
 };
 
 export function RidersClient({ 
-  initialRiders = [], warehouses = [] 
+  initialRiders = [], warehouses = [], userRole = 'admin', assignedWarehouseId = null 
 }: { 
-  initialRiders: any[]; warehouses: any[] 
+  initialRiders: any[]; warehouses: any[]; userRole?: string; assignedWarehouseId?: string | null 
 }) {
   const router = useRouter();
   const [liveRiders, setLiveRiders] = useState(initialRiders || []);
   const safeWarehouses = warehouses || [];
+
+  // Hub Filter State
+  const [selectedHubFilter, setSelectedHubFilter] = useState<string>(assignedWarehouseId || "all");
 
   // Receipt Verification State
   const [verificationToken, setVerificationToken] = useState("");
@@ -46,7 +49,10 @@ export function RidersClient({
   // Sync state if initial props change via server revalidation
   useEffect(() => {
     setLiveRiders(initialRiders || []);
-  }, [initialRiders]);
+    if (assignedWarehouseId) {
+      setSelectedHubFilter(assignedWarehouseId);
+    }
+  }, [initialRiders, assignedWarehouseId]);
 
   // SUPABASE REALTIME SUBSCRIPTION FOR LIVE RIDERS FLEET (INSTANT CLIENT STATE SYNC)
   useEffect(() => {
@@ -117,9 +123,15 @@ export function RidersClient({
     }
   };
 
-  const availableCount = liveRiders.filter(r => r.status === 'available').length;
-  const busyCount = liveRiders.filter(r => r.status === 'on_delivery').length;
-  const offlineCount = liveRiders.filter(r => r.status === 'offline' || r.status === 'off_duty').length;
+  // Filter riders based on selected Hub / Warehouse
+  const filteredRiders = liveRiders.filter(r => {
+    if (selectedHubFilter !== "all" && r.warehouse_id !== selectedHubFilter) return false;
+    return true;
+  });
+
+  const availableCount = filteredRiders.filter(r => r.status === 'available').length;
+  const busyCount = filteredRiders.filter(r => r.status === 'on_delivery').length;
+  const offlineCount = filteredRiders.filter(r => r.status === 'offline' || r.status === 'off_duty').length;
 
   return (
     <div className="space-y-8 font-sans antialiased selection:bg-primary selection:text-white pb-12">
@@ -127,7 +139,7 @@ export function RidersClient({
       <div className="flex justify-between items-center gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Delivery Riders</h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium">Manage Jowai Central Hub delivery personnel, live dispatch status, daily earnings verification, and salary payouts.</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium">Manage hub delivery personnel, live dispatch status, daily earnings verification, and salary payouts.</p>
         </div>
         <AddRiderDialog warehouses={safeWarehouses} />
       </div>
@@ -174,6 +186,34 @@ export function RidersClient({
         </CardContent>
       </Card>
 
+      {/* FILTER BY HUB / WAREHOUSE BAR */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 shadow-inner shrink-0">
+            <Filter className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 block">Filter Fleet by Hub</span>
+            <select
+              value={selectedHubFilter}
+              onChange={e => setSelectedHubFilter(e.target.value)}
+              disabled={userRole === 'warehouse_admin'} // Warehouse admins are locked to their assigned hub
+              className="bg-transparent border-none p-0 font-extrabold text-slate-800 text-sm focus:ring-0 cursor-pointer"
+            >
+              <option value="all">All Hubs & Warehouses</option>
+              {safeWarehouses.map(w => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {userRole === 'warehouse_admin' && (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-bold px-3 py-1 shadow-sm">
+            Locked to Assigned Hub
+          </Badge>
+        )}
+      </div>
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-none shadow-sm outline outline-1 outline-slate-200 bg-white rounded-2xl">
@@ -184,7 +224,7 @@ export function RidersClient({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{liveRiders.length}</div>
+            <div className="text-3xl font-black text-slate-900">{filteredRiders.length}</div>
           </CardContent>
         </Card>
 
@@ -231,14 +271,14 @@ export function RidersClient({
           <CardTitle className="text-lg font-black text-slate-900 tracking-tight">Active Personnel & Accumulated Unpaid Salary</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {liveRiders.length === 0 ? (
+          {filteredRiders.length === 0 ? (
             <div className="p-16 text-center text-slate-500">
               <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300 shadow-inner">
                 <Bike className="w-10 h-10" />
               </div>
               <p className="font-black text-xl text-slate-900 mb-2 tracking-tight">No riders found</p>
               <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium leading-relaxed">
-                Use the "Add Rider" button above or execute the STAFF-ROLE-MANAGEMENT.md SQL script to assign delivery personnel.
+                Use the "Add Rider" button above or execute the STAFF-ROLE-MANAGEMENT.md SQL script to assign delivery personnel to this hub.
               </p>
             </div>
           ) : (
@@ -255,7 +295,7 @@ export function RidersClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {liveRiders.map((rider) => {
+                {filteredRiders.map((rider) => {
                   const statusInfo = STATUS_MAP[rider.status] || STATUS_MAP.offline;
                   const accumulatedEarnings = rider.daily_earnings || 0;
 
