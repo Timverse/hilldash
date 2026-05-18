@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { processCheckoutAction } from "@/app/actions/checkout"
 import { toast } from "sonner"
-import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles, Tag, Gift } from "lucide-react"
+import { MapPin, Loader2, CheckCircle2, ShoppingBag, CreditCard, Info, AlertCircle, Clock, Calendar, Sparkles, Tag, Gift, User, ArrowRight, ShieldCheck, FileText, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { calculateDistanceKm, calculateDeliveryFee } from "@/lib/utils/distance"
@@ -64,7 +64,7 @@ export function CheckoutForm({
   const [distanceKm, setDistanceKm] = useState<number | null>(null)
   const [deliveryFee, setDeliveryFee] = useState<number>(0)
 
-  // BigBasket Delivery Time Slot State
+  // Swiggy Delivery Time Slot State
   const [selectedDay, setSelectedDay] = useState<"today" | "tomorrow">("today")
   const [selectedSlot, setSelectedSlot] = useState<string>("")
   const [availableTodaySlots, setAvailableTodaySlots] = useState<typeof TIME_SLOTS>([])
@@ -74,7 +74,7 @@ export function CheckoutForm({
   const pointsDiscount = usePoints ? Math.floor(userPoints / 1000) : 0
   const pointsApplied = usePoints ? pointsDiscount * 1000 : 0
 
-  // Amazon-Grade Coupon & Promotion State
+  // Amazon/Swiggy Coupon & Promotion State
   const [selectedDiscountId, setSelectedDiscountId] = useState<string>("")
   const [couponInput, setCouponInput] = useState<string>("")
   const [couponError, setCouponError] = useState<string>("")
@@ -282,7 +282,7 @@ export function CheckoutForm({
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200 shadow-sm font-sans antialiased">
+      <div className="text-center py-32 bg-white rounded-[3rem] border border-slate-200 shadow-sm font-sans antialiased">
         <div className="w-24 h-24 bg-slate-50 rounded-3xl mx-auto flex items-center justify-center text-slate-300 mb-8 shadow-inner">
           <ShoppingBag className="w-12 h-12" />
         </div>
@@ -300,193 +300,230 @@ export function CheckoutForm({
   const finalTotalPayable = Math.max(0, getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0) - pointsDiscount - promoDiscountAmount)
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12 items-start font-sans antialiased">
-      {/* Form Section */}
-      <div className="flex-1 w-full">
-        <form onSubmit={handleSubmit} className="space-y-10">
+    <div className="flex flex-col lg:flex-row gap-10 items-start font-sans antialiased">
+      {/* SWIGGY STYLE LEFT FORM SECTION */}
+      <div className="flex-1 w-full space-y-8">
+        <form onSubmit={handleSubmit} id="swiggy-checkout-form" className="space-y-8">
           
-          <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-10">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Delivery Details</h2>
+          {/* STEP 1: ACCOUNT / CONTACT DETAILS */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-3 h-full bg-slate-900" />
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md">
+                <User className="w-6 h-6" />
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Full Name</label>
-                  <Input name="name" required placeholder="John Doe" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Step 1</span>
+                  <Badge className="bg-slate-100 text-slate-700 border-none font-bold">Account</Badge>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Phone Number</label>
-                  <Input name="phone" required placeholder="8974319494" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
-                </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Contact Details</h2>
               </div>
-
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Delivery Address</label>
-                <Textarea name="address" required placeholder="House No, Street, Landmark, Area" rows={3} className="rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all p-6 text-lg font-medium" />
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Full Name</label>
+                <Input name="name" required placeholder="John Doe" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Phone Number</label>
+                <Input name="phone" required placeholder="8974319494" type="tel" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 2: DELIVERY ADDRESS & GPS VERIFICATION */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-3 h-full bg-primary" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Step 2</span>
+                    <Badge className="bg-primary/10 text-primary border-none font-bold">Delivery</Badge>
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Delivery Address</h2>
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1 flex justify-between items-center">
-                  <span>Exact Delivery Location</span>
-                  <AnimatePresence>
-                    {location && (
-                      <motion.span 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="text-emerald-600 flex items-center text-[10px] font-black uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200"
-                      >
-                        <CheckCircle2 className="w-3 h-3 mr-1.5" /> 
-                        Verified Zone
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </label>
-                
-                <div className="relative group">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    className={`w-full h-16 rounded-2xl border-2 font-bold text-lg transition-all active:scale-[0.98] ${
-                      location 
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                        : 'border-dashed border-primary/30 text-primary hover:border-primary hover:bg-primary/5'
-                    }`}
-                    onClick={getLocation}
-                    disabled={isGettingLocation || location !== null}
+              <AnimatePresence>
+                {location && (
+                  <motion.span 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-emerald-600 flex items-center text-xs font-black uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200 shadow-sm"
                   >
-                    {isGettingLocation ? (
-                      <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Locating (Auto-fallback in 5s)...</>
-                    ) : location ? (
-                      <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> Delivery Location Verified</>
-                    ) : (
-                      <><MapPin className="w-6 h-6 mr-3" /> Tap for Delivery Location Verification</>
-                    )}
-                  </Button>
-                </div>
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Verified Zone
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="space-y-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Complete Delivery Address</label>
+                <Textarea name="address" required placeholder="House No, Street, Landmark, Area" rows={3} className="rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all p-6 text-lg font-medium shadow-inner" />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">GPS Feasibility Verification</label>
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className={`w-full h-16 rounded-2xl border-2 font-bold text-base sm:text-lg transition-all active:scale-[0.98] shadow-sm ${
+                    location 
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                      : 'border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5'
+                  }`}
+                  onClick={getLocation}
+                  disabled={isGettingLocation || location !== null}
+                >
+                  {isGettingLocation ? (
+                    <><Loader2 className="w-6 h-6 mr-3 animate-spin" /> Locating (Auto-fallback in 5s)...</>
+                  ) : location ? (
+                    <><MapPin className="w-6 h-6 mr-3 text-emerald-600" /> Delivery Location Verified (Jowai Hub)</>
+                  ) : (
+                    <><MapPin className="w-6 h-6 mr-3" /> Tap for Instant GPS Verification</>
+                  )}
+                </Button>
                 
                 {locationError && (
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100"
+                    className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 shadow-sm"
                   >
                     <AlertCircle className="w-5 h-5 shrink-0" />
                     {locationError}
                   </motion.div>
                 )}
-                
+
                 {!location && !locationError && (
                   <div className="flex items-center gap-2 px-1 text-slate-400 font-medium">
-                    <Info className="w-4 h-4" />
-                    <p className="text-xs italic">Tap above to instantly confirm your delivery feasibility in Jowai.</p>
+                    <Info className="w-4 h-4 shrink-0" />
+                    <p className="text-xs italic">Swiggy-style instant GPS verification ensures accurate rider assignment.</p>
                   </div>
                 )}
               </div>
+            </div>
+          </div>
 
-              {/* BIGBASKET DELIVERY TIME SLOT PICKER */}
-              <div className="space-y-6 pt-6 border-t border-slate-100">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center shrink-0 border border-purple-100 shadow-sm">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Select Delivery Time Slot</h3>
-                    <p className="text-slate-500 text-xs font-medium mt-0.5">Choose a convenient 2-hour window (8 AM - 8 PM)</p>
-                  </div>
+          {/* STEP 3: SWIGGY DELIVERY TIME SLOT PICKER */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-3 h-full bg-purple-600" />
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-purple-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Step 3</span>
+                  <Badge className="bg-purple-100 text-purple-700 border-none font-bold">Schedule</Badge>
                 </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Select Delivery Slot</h2>
+              </div>
+            </div>
 
-                {/* Day Selection Tabs */}
-                <div className="flex gap-4 p-1.5 bg-slate-100 rounded-2xl w-full max-w-md shadow-inner">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleDayChange("today")}
-                    disabled={availableTodaySlots.length === 0}
-                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
-                      selectedDay === "today" 
-                        ? 'bg-white text-slate-900 shadow-md' 
-                        : 'text-slate-500 hover:text-slate-900 disabled:opacity-30'
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4 mr-2 text-primary" />
-                    Today ({format(now, "dd MMM")})
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleDayChange("tomorrow")}
-                    className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
-                      selectedDay === "tomorrow" 
-                        ? 'bg-white text-slate-900 shadow-md' 
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4 mr-2 text-purple-600" />
-                    Tomorrow ({format(tomorrow, "dd MMM")})
-                  </Button>
+            <div className="space-y-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
+              {/* Day Selection Tabs */}
+              <div className="flex gap-4 p-1.5 bg-slate-100 rounded-2xl w-full max-w-md shadow-inner">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleDayChange("today")}
+                  disabled={availableTodaySlots.length === 0}
+                  className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
+                    selectedDay === "today" 
+                      ? 'bg-white text-slate-900 shadow-md' 
+                      : 'text-slate-500 hover:text-slate-900 disabled:opacity-30'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 mr-2 text-primary" />
+                  Today ({format(now, "dd MMM")})
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleDayChange("tomorrow")}
+                  className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
+                    selectedDay === "tomorrow" 
+                      ? 'bg-white text-slate-900 shadow-md' 
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                  Tomorrow ({format(tomorrow, "dd MMM")})
+                </Button>
+              </div>
+
+              {availableTodaySlots.length === 0 && selectedDay === "today" && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-2 shadow-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  Orders placed after 8 PM are scheduled for delivery starting tomorrow morning.
                 </div>
+              )}
 
-                {availableTodaySlots.length === 0 && selectedDay === "today" && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-bold flex items-center gap-2 shadow-sm">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    Orders placed after 8 PM are scheduled for delivery starting tomorrow morning.
-                  </div>
-                )}
-
-                {/* Slots Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  {(selectedDay === "today" ? availableTodaySlots : TIME_SLOTS).map((slot) => {
-                    const isSelected = selectedSlot.includes(slot.label)
-                    return (
-                      <div
-                        key={slot.id}
-                        onClick={() => handleSlotSelect(slot.label)}
-                        className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                          isSelected 
-                            ? 'bg-purple-50/50 border-purple-600 shadow-md shadow-purple-600/10' 
-                            : 'bg-slate-50/50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'
-                          }`}>
-                            {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                          </div>
-                          <span className={`font-bold text-sm ${isSelected ? 'text-purple-900' : 'text-slate-700'}`}>
-                            {slot.label}
-                          </span>
-                        </div>
-                        <Badge className={`border-none font-bold px-2.5 py-1 text-[10px] rounded-lg shadow-sm ${
-                          isSelected ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
+              {/* Slots Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                {(selectedDay === "today" ? availableTodaySlots : TIME_SLOTS).map((slot) => {
+                  const isSelected = selectedSlot.includes(slot.label)
+                  return (
+                    <div
+                      key={slot.id}
+                      onClick={() => handleSlotSelect(slot.label)}
+                      className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer shadow-sm ${
+                        isSelected 
+                          ? 'bg-purple-50/50 border-purple-600 shadow-md shadow-purple-600/10' 
+                          : 'bg-slate-50/50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'
                         }`}>
-                          Available
-                        </Badge>
+                          {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                        </div>
+                        <span className={`font-bold text-sm ${isSelected ? 'text-purple-900' : 'text-slate-700'}`}>
+                          {slot.label}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                      <Badge className={`border-none font-bold px-2.5 py-1 text-[10px] rounded-lg shadow-sm ${
+                        isSelected ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
+                      }`}>
+                        Available
+                      </Badge>
+                    </div>
+                  )
+                })}
               </div>
+            </div>
+          </div>
 
-              {/* AMAZON-GRADE PROMOTIONAL DISCOUNTS & COUPONS */}
-              <div className="space-y-6 pt-6 border-t border-slate-100">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100 shadow-sm">
-                    <Gift className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Promotional Offers & Coupons</h3>
-                    <p className="text-slate-500 text-xs font-medium mt-0.5">Select an active festive deal or enter a custom coupon code</p>
-                  </div>
+          {/* STEP 4: SWIGGY OFFERS, PROMOTIONS & LOYALTY BENEFITS */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-3 h-full bg-emerald-500" />
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                <Gift className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Step 4</span>
+                  <Badge className="bg-emerald-100 text-emerald-800 border-none font-bold">Benefits</Badge>
                 </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Offers & Benefits</h2>
+              </div>
+            </div>
 
-                {/* Available Discounts List */}
-                {discounts.length > 0 && (
+            <div className="space-y-8 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
+              {/* Available Discounts List */}
+              {discounts.length > 0 && (
+                <div className="space-y-4">
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Available Promotions</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {discounts.map(d => {
                       const isSelected = selectedDiscountId === d.id
@@ -501,7 +538,7 @@ export function CheckoutForm({
                             }
                             setSelectedDiscountId(isSelected ? "" : d.id)
                           }}
-                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-sm ${
                             isSelected 
                               ? 'bg-emerald-50/50 border-emerald-600 shadow-md shadow-emerald-600/10' 
                               : !isEligible 
@@ -539,10 +576,13 @@ export function CheckoutForm({
                       )
                     })}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Custom Coupon Input */}
-                <div className="flex gap-3 max-w-md pt-2">
+              {/* Custom Coupon Input */}
+              <div className="space-y-3 pt-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Have a coupon code?</label>
+                <div className="flex gap-3 max-w-md">
                   <Input 
                     value={couponInput}
                     onChange={(e) => {
@@ -550,7 +590,7 @@ export function CheckoutForm({
                       setCouponError("")
                     }}
                     placeholder="Enter custom coupon code..."
-                    className="h-12 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 font-bold text-slate-900 uppercase tracking-wider"
+                    className="h-12 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 font-bold text-slate-900 uppercase tracking-wider shadow-inner"
                   />
                   <Button 
                     type="button" 
@@ -603,131 +643,167 @@ export function CheckoutForm({
 
               <div className="space-y-2 pt-6 border-t border-slate-100">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Delivery Instructions (Optional)</label>
-                <Input name="notes" placeholder="e.g. Near Big Church, blue gate" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium" />
-              </div>
-            </div>
-
-            <div className="space-y-6 pt-6 border-t border-slate-100">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center shrink-0">
-                  <CreditCard className="w-5 h-5" />
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Payment Method</h2>
-              </div>
-              
-              <div className="relative group">
-                <label className="flex items-center space-x-4 p-6 border-2 border-primary bg-primary/5 rounded-[2rem] cursor-pointer transition-all shadow-lg shadow-primary/5">
-                  <div className="w-6 h-6 rounded-full border-4 border-primary flex items-center justify-center bg-white shrink-0">
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  </div>
-                  <input type="radio" name="payment_method" value="COD" defaultChecked className="hidden" />
-                  <div>
-                    <p className="font-black text-slate-900 text-lg">Cash on Delivery (COD)</p>
-                    <p className="text-slate-500 text-sm font-medium">Pay when your order arrives at your door.</p>
-                  </div>
-                </label>
+                <Input name="notes" placeholder="e.g. Near Big Church, blue gate" className="h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-white transition-all px-6 text-lg font-medium shadow-inner" />
               </div>
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || !location || !selectedSlot || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)} 
-            className="w-full h-20 text-2xl font-black bg-primary hover:bg-primary/90 text-white rounded-[2rem] shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <><Loader2 className="w-8 h-8 mr-3 animate-spin" /> Processing Order...</>
-            ) : (
-              `Place Order • ₹${finalTotalPayable.toFixed(2)}`
-            )}
-          </Button>
-
+          {/* STEP 5: PAYMENT METHOD */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-3 h-full bg-amber-500" />
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Step 5</span>
+                  <Badge className="bg-amber-100 text-amber-800 border-none font-bold">Payment</Badge>
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Payment Method</h2>
+              </div>
+            </div>
+            
+            <div className="pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
+              <label className="flex items-center space-x-4 p-6 border-2 border-primary bg-primary/5 rounded-[2rem] cursor-pointer transition-all shadow-md shadow-primary/5">
+                <div className="w-6 h-6 rounded-full border-4 border-primary flex items-center justify-center bg-white shrink-0">
+                  <div className="w-2 h-2 bg-primary rounded-full" />
+                </div>
+                <input type="radio" name="payment_method" value="COD" defaultChecked className="hidden" />
+                <div>
+                  <p className="font-black text-slate-900 text-lg">Cash on Delivery (COD)</p>
+                  <p className="text-slate-500 text-sm font-medium">Pay when your order arrives at your door.</p>
+                </div>
+              </label>
+            </div>
+          </div>
         </form>
       </div>
 
-      {/* Order Summary Sidebar */}
-      <div className="w-full lg:w-[400px] shrink-0">
-        <div className="bg-slate-900 text-white p-8 md:p-10 rounded-[3rem] shadow-2xl sticky top-28 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full" />
-          <div className="relative z-10">
-            <h2 className="text-2xl font-black mb-8 tracking-tight">Order Summary</h2>
-            
-            <div className="space-y-6 mb-10 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-              {items.map(item => (
-                <div key={item.product_id} className="flex gap-4">
-                  <div className="w-16 h-16 bg-white/10 rounded-2xl overflow-hidden shrink-0 shadow-inner">
-                    {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm leading-tight mb-1">{item.name}</p>
-                    <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">{item.quantity} Unit{item.quantity > 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-black text-sm">₹{(item.price * item.quantity).toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
+      {/* SWIGGY STYLE ORDER SUMMARY SIDEBAR */}
+      <div className="w-full lg:w-[420px] shrink-0">
+        <div className="bg-slate-900 text-white p-8 md:p-10 rounded-[3rem] shadow-2xl sticky top-28 overflow-hidden space-y-8 border border-white/10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="relative z-10 border-b border-white/10 pb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-white">Order Summary</h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Swiggy Instant Dispatch Feasibility</p>
             </div>
-
-            <div className="space-y-4 pt-8 border-t border-white/10">
-              <div className="flex justify-between text-white/60 text-sm font-medium">
-                <span>Subtotal</span>
-                <span className="text-white">₹{getCartTotal().toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-white/60 text-sm font-medium">
-                <span>Delivery Fee</span>
-                {location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? (
-                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded-xl border border-white/10">₹{deliveryFee.toFixed(2)}</span>
-                ) : (
-                  <span className="text-primary font-bold text-xs italic">Calculated at checkout</span>
-                )}
-              </div>
-
-              {selectedDiscount && promoDiscountAmount > 0 && (
-                <div className="flex justify-between items-center text-emerald-300 text-sm font-bold pt-1">
-                  <span>Promo ({selectedDiscount.code || selectedDiscount.title})</span>
-                  <span className="bg-emerald-500/20 px-2.5 py-1 rounded-xl border border-emerald-500/30">
-                    -₹{promoDiscountAmount.toFixed(2)}
-                  </span>
+            <Badge className="bg-primary text-white font-bold border-none px-3 py-1 rounded-full text-xs shadow-lg shadow-primary/30">
+              {items.length} Items
+            </Badge>
+          </div>
+          
+          {/* Cart Items List */}
+          <div className="space-y-6 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
+            {items.map(item => (
+              <div key={item.product_id} className="flex gap-4 items-center">
+                <div className="w-16 h-16 bg-white/10 rounded-2xl overflow-hidden shrink-0 shadow-inner border border-white/5">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <ShoppingBag className="w-6 h-6 text-slate-500 m-5" />
+                  )}
                 </div>
-              )}
-
-              {usePoints && pointsDiscount > 0 && (
-                <div className="flex justify-between items-center text-purple-300 text-sm font-bold pt-1">
-                  <span>Loyalty Discount</span>
-                  <span className="bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30">
-                    -₹{pointsDiscount.toFixed(2)}
-                  </span>
+                <div className="flex-1">
+                  <p className="font-bold text-sm leading-tight mb-1 text-white">{item.name}</p>
+                  <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{item.quantity} Unit{item.quantity > 1 ? 's' : ''}</p>
                 </div>
-              )}
-
-              {selectedSlot && (
-                <div className="flex justify-between items-center text-white/60 text-xs font-medium pt-2 border-t border-white/5">
-                  <span>Delivery Slot</span>
-                  <span className="text-purple-300 font-bold bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30 text-[11px]">
-                    {selectedSlot.split(', ')[1] || selectedSlot}
-                  </span>
-                </div>
-              )}
-              
-              <div className="pt-6 flex flex-col gap-2 border-t border-white/10 mt-2">
-                <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Payable</p>
-                <div className="flex justify-between items-end">
-                  <span className="text-5xl font-black text-primary tracking-tighter">
-                    ₹{finalTotalPayable.toFixed(2)}
-                  </span>
+                <div className="text-right">
+                  <p className="font-black text-sm text-white">₹{(item.price * item.quantity).toFixed(2)}</p>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {/* Swiggy Bill Details */}
+          <div className="space-y-4 pt-6 border-t border-white/10 relative z-10">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Bill Details</h3>
+            
+            <div className="flex justify-between text-slate-300 text-sm font-medium">
+              <span>Item Total</span>
+              <span className="text-white font-bold">₹{getCartTotal().toFixed(2)}</span>
             </div>
             
-            <div className="mt-10 p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 bg-emerald-500/20 text-emerald-50 text-emerald-500 rounded-lg flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <p className="text-[10px] text-white/60 font-medium leading-relaxed">
-                Your order is protected by <span className="text-white font-bold">Sawaïom Safety Guarantee</span>.
-              </p>
+            <div className="flex justify-between items-center text-slate-300 text-sm font-medium">
+              <span>Delivery Fee</span>
+              {location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? (
+                <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded-xl border border-white/10 shadow-sm">₹{deliveryFee.toFixed(2)}</span>
+              ) : (
+                <span className="text-primary font-bold text-xs italic">Calculated at checkout</span>
+              )}
             </div>
+
+            {selectedDiscount && promoDiscountAmount > 0 && (
+              <div className="flex justify-between items-center text-emerald-300 text-sm font-bold pt-1">
+                <span>Promo ({selectedDiscount.code || selectedDiscount.title})</span>
+                <span className="bg-emerald-500/20 px-2.5 py-1 rounded-xl border border-emerald-500/30 shadow-sm">
+                  -₹{promoDiscountAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {usePoints && pointsDiscount > 0 && (
+              <div className="flex justify-between items-center text-purple-300 text-sm font-bold pt-1">
+                <span>Loyalty Discount</span>
+                <span className="bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30 shadow-sm">
+                  -₹{pointsDiscount.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {selectedSlot && (
+              <div className="flex justify-between items-center text-slate-400 text-xs font-medium pt-2 border-t border-white/5">
+                <span>Delivery Slot</span>
+                <span className="text-purple-300 font-bold bg-purple-500/20 px-2.5 py-1 rounded-xl border border-purple-500/30 text-[11px] shadow-sm">
+                  {selectedSlot.split(', ')[1] || selectedSlot}
+                </span>
+              </div>
+            )}
+            
+            <div className="pt-6 flex flex-col gap-2 border-t border-white/10 mt-2">
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">To Pay</p>
+              <div className="flex justify-between items-end">
+                <span className="text-5xl font-black text-primary tracking-tighter">
+                  ₹{finalTotalPayable.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Swiggy Tip Box */}
+          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-start gap-3 relative z-10 shadow-sm">
+            <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-slate-300 font-medium leading-relaxed">
+              Review your order and address details to avoid cancellations. Protected by <span className="text-white font-bold">Sawaïom Safety Guarantee</span>.
+            </p>
+          </div>
+
+          {/* Swiggy Proceed Button */}
+          <div className="pt-4 relative z-10">
+            <Button 
+              form="swiggy-checkout-form"
+              type="submit" 
+              disabled={isSubmitting || !location || !selectedSlot || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)} 
+              className="w-full h-20 text-xl font-black bg-primary hover:bg-primary/90 text-white rounded-[2rem] shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-between px-8"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center w-full"><Loader2 className="w-8 h-8 mr-3 animate-spin" /> Processing Order...</span>
+              ) : (
+                <>
+                  <span className="flex flex-col items-start leading-none">
+                    <span className="text-xs uppercase tracking-widest text-primary-foreground/80 font-extrabold mb-1">Total Payable</span>
+                    <span className="text-2xl font-black">₹{finalTotalPayable.toFixed(2)}</span>
+                  </span>
+                  <span className="flex items-center gap-2 font-black text-lg">
+                    PROCEED TO PAY <ArrowRight className="w-6 h-6" />
+                  </span>
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
