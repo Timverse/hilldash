@@ -16,6 +16,7 @@ import { toast } from "sonner"
 type Product = {
   id: string
   name: string
+  mrp?: number | null
   price: number
   stock: number
   is_active: boolean
@@ -145,7 +146,12 @@ export function ProductTable({ products, categories }: { products: Product[], ca
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-extrabold text-slate-900">₹{product.price}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-slate-400 line-through">₹{product.mrp || Math.round(product.price * 1.2)}</span>
+                        <span className="font-extrabold text-slate-900">₹{product.price}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right font-bold text-slate-700">{product.stock}</TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center">

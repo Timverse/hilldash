@@ -22,6 +22,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
   category_id: z.string().min(1, "Please select a category"),
+  mrp: z.string().optional(),
   price: z.string().min(1, "Price is required"),
   stock: z.string().min(1, "Stock is required"),
   is_active: z.boolean(),
@@ -68,6 +69,7 @@ export function EditProductDialog({
       name: product?.name || "",
       description: product?.description || "",
       category_id: product?.category_id || (product?.categories?.id || ""),
+      mrp: product?.mrp?.toString() || (product?.price ? Math.round(product.price * 1.2).toString() : "500"),
       price: product?.price?.toString() || "0",
       stock: product?.stock?.toString() || "0",
       is_active: product?.is_active ?? true,
@@ -83,6 +85,7 @@ export function EditProductDialog({
         name: product.name || "",
         description: product.description || "",
         category_id: product.category_id || (product.categories?.id || ""),
+        mrp: product.mrp?.toString() || (product.price ? Math.round(product.price * 1.2).toString() : "500"),
         price: product.price?.toString() || "0",
         stock: product.stock?.toString() || "0",
         is_active: product.is_active ?? true,
@@ -99,6 +102,7 @@ export function EditProductDialog({
       formData.append("name", values.name)
       if (values.description) formData.append("description", values.description)
       formData.append("category_id", values.category_id)
+      if (values.mrp) formData.append("mrp", values.mrp)
       formData.append("price", values.price.toString())
       formData.append("stock", values.stock.toString())
       if (values.is_active) formData.append("is_active", "on")
@@ -132,7 +136,7 @@ export function EditProductDialog({
         <DialogHeader>
           <DialogTitle className="text-slate-900">Edit Product</DialogTitle>
           <DialogDescription className="text-slate-500">
-            Modify product details, batch tracking, or update the image.
+            Modify product details, pricing, batch tracking, or update the image.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,25 +156,39 @@ export function EditProductDialog({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-slate-700 font-medium">Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="border-slate-300 bg-white text-slate-900">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white border-slate-200 z-[200]">
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="category_id"
+                name="mrp"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700 font-medium">Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="border-slate-300 bg-white text-slate-900">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-white border-slate-200 z-[200]">
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">{cat.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel className="text-slate-700 font-medium">MRP (₹)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="e.g. 500" className="border-slate-300" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -181,9 +199,9 @@ export function EditProductDialog({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-700 font-medium">Price (₹)</FormLabel>
+                    <FormLabel className="text-slate-700 font-medium">Sawaïom Price (₹)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" className="border-slate-300" {...field} />
+                      <Input type="number" step="0.01" placeholder="e.g. 480" className="border-slate-300" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

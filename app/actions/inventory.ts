@@ -11,6 +11,7 @@ export async function createProductAction(formData: FormData) {
   console.log('name:', formData.get('name'))
   console.log('category_id:', formData.get('category_id'))
   console.log('price:', formData.get('price'))
+  console.log('mrp:', formData.get('mrp'))
   console.log('stock:', formData.get('stock'))
   console.log('is_active:', formData.get('is_active'))
   console.log('batch_number:', formData.get('batch_number'))
@@ -35,6 +36,8 @@ export async function createProductAction(formData: FormData) {
   const description = formData.get('description') as string
   const category_id = formData.get('category_id') as string
   const price = parseFloat(formData.get('price') as string)
+  const mrpStr = formData.get('mrp') as string
+  const mrp = mrpStr ? parseFloat(mrpStr) : (price > 0 ? Math.round(price * 1.2) : 500)
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
   const batch_number = formData.get('batch_number') as string || null
@@ -66,11 +69,12 @@ export async function createProductAction(formData: FormData) {
     }
   }
 
-  const insertPayload = {
+  const insertPayloadWithMrp = {
     name,
     description: description || null,
     category_id: category_id || null,
     price,
+    mrp,
     stock: isNaN(stock) ? 0 : stock,
     is_active,
     batch_number,
@@ -79,14 +83,23 @@ export async function createProductAction(formData: FormData) {
     warehouse_id: warehouseId
   }
 
-  console.log('Inserting product:', insertPayload)
+  console.log('Inserting product with MRP:', insertPayloadWithMrp)
 
-  // Insert Product
-  const { data: inserted, error: insertError } = await supabase
+  // Insert Product with MRP first
+  let { data: inserted, error: insertError } = await supabase
     .from('products')
-    .insert(insertPayload)
+    .insert(insertPayloadWithMrp)
     .select()
     .single()
+
+  // Fallback if mrp column does not exist yet in Supabase
+  if (insertError && insertError.message.includes('mrp')) {
+    console.warn('mrp column not found in products table, retrying insert without mrp...')
+    const { mrp: _, ...insertPayloadWithoutMrp } = insertPayloadWithMrp
+    const retryRes = await supabase.from('products').insert(insertPayloadWithoutMrp).select().single()
+    inserted = retryRes.data
+    insertError = retryRes.error
+  }
 
   console.log('Insert result:', { inserted, insertError })
 
@@ -109,17 +122,20 @@ export async function editProductAction(id: string, formData: FormData) {
   const description = formData.get('description') as string
   const category_id = formData.get('category_id') as string
   const price = parseFloat(formData.get('price') as string)
+  const mrpStr = formData.get('mrp') as string
+  const mrp = mrpStr ? parseFloat(mrpStr) : (price > 0 ? Math.round(price * 1.2) : 500)
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
   const batch_number = formData.get('batch_number') as string || null
   const expiry_date = formData.get('expiry_date') as string || null
   const imageFile = formData.get('image') as File | null
 
-  const updateData: any = { 
+  const updateDataWithMrp: any = { 
     name, 
     description, 
     category_id, 
     price, 
+    mrp,
     stock, 
     is_active,
     batch_number,
@@ -134,11 +150,20 @@ export async function editProductAction(id: string, formData: FormData) {
     const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, imageFile)
     if (!uploadError) {
       const { data } = supabase.storage.from('product-images').getPublicUrl(filePath)
-      updateData.image_url = data.publicUrl
+      updateDataWithMrp.image_url = data.publicUrl
     }
   }
 
-  const { error } = await supabase.from('products').update(updateData).eq('id', id)
+  let { error } = await supabase.from('products').update(updateDataWithMrp).eq('id', id)
+
+  // Fallback if mrp column does not exist yet in Supabase
+  if (error && error.message.includes('mrp')) {
+    console.warn('mrp column not found in products table, retrying update without mrp...')
+    const { mrp: _, ...updateDataWithoutMrp } = updateDataWithMrp
+    const retryRes = await supabase.from('products').update(updateDataWithoutMrp).eq('id', id)
+    error = retryRes.error
+  }
+
   if (error) return { error: 'Failed to update product' }
 
   revalidatePath('/dashboard/products', 'page')

@@ -10,6 +10,7 @@ import Link from "next/link"
 type Product = {
   id: string
   name: string
+  mrp?: number | null
   price: number
   stock: number
   image_url: string
@@ -101,7 +102,7 @@ export function ProductCard({ product }: { product: Product }) {
       
       <div className="flex items-center justify-between mt-auto pt-2">
         <div className="flex flex-col">
-          <span className="text-slate-400 text-[10px] line-through">₹{Math.round(product.price * 1.2)}</span>
+          <span className="text-slate-400 text-[10px] line-through">₹{product.mrp || Math.round(product.price * 1.2)}</span>
           <span className="font-black text-slate-900 text-xl tracking-tight">₹{product.price}</span>
         </div>
 
@@ -144,5 +145,3 @@ export function ProductCard({ product }: { product: Product }) {
     </motion.div>
   )
 }
-
-

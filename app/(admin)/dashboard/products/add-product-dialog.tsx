@@ -44,6 +44,7 @@ export function AddProductDialog({
     e.preventDefault()
     const form = e.currentTarget
     const nameEl = form.elements.namedItem("name") as HTMLInputElement
+    const mrpEl = form.elements.namedItem("mrp") as HTMLInputElement
     const priceEl = form.elements.namedItem("price") as HTMLInputElement
     const stockEl = form.elements.namedItem("stock") as HTMLInputElement
     const descEl = form.elements.namedItem("description") as HTMLInputElement
@@ -61,6 +62,7 @@ export function AddProductDialog({
       formData.append("name", nameEl.value.trim())
       formData.append("description", descEl.value.trim())
       formData.append("category_id", selectedCategoryId)
+      if (mrpEl?.value) formData.append("mrp", mrpEl.value)
       formData.append("price", priceEl.value)
       formData.append("stock", stockEl.value || "0")
       if (isActive) formData.append("is_active", "on")
@@ -71,6 +73,7 @@ export function AddProductDialog({
       console.log("Submitting product:", {
         name: nameEl.value,
         category_id: selectedCategoryId,
+        mrp: mrpEl?.value,
         price: priceEl.value,
         stock: stockEl.value,
         batch_number: batchEl?.value,
@@ -117,7 +120,7 @@ export function AddProductDialog({
               id="name"
               name="name"
               placeholder="e.g. Fresh Organic Khasi Tomatoes"
-              className="border-slate-300 focus:border-emerald-500"
+              className="border-slate-300 focus:border-emerald-50"
               required
             />
           </div>
@@ -133,38 +136,52 @@ export function AddProductDialog({
             />
           </div>
 
+          {/* Category */}
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-medium">Category *</Label>
+            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <SelectTrigger className="border-slate-300 bg-white text-slate-900 w-full">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-slate-200 z-[200]">
+                {categories.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-slate-500">No categories yet. Create one first.</div>
+                ) : (
+                  categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">
+                      {cat.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            {/* Category */}
+            {/* MRP */}
             <div className="space-y-1.5">
-              <Label className="text-slate-700 font-medium">Category *</Label>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                <SelectTrigger className="border-slate-300 bg-white text-slate-900 w-full">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-slate-200 z-[200]">
-                  {categories.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-slate-500">No categories yet. Create one first.</div>
-                  ) : (
-                    categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">
-                        {cat.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="mrp" className="text-slate-700 font-medium">MRP (₹)</Label>
+              <Input
+                id="mrp"
+                name="mrp"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="e.g. 500"
+                className="border-slate-300"
+              />
             </div>
 
             {/* Price */}
             <div className="space-y-1.5">
-              <Label htmlFor="price" className="text-slate-700 font-medium">Price (₹) *</Label>
+              <Label htmlFor="price" className="text-slate-700 font-medium">Sawaïom Price (₹) *</Label>
               <Input
                 id="price"
                 name="price"
                 type="number"
                 step="0.01"
                 min="0"
-                defaultValue="0"
+                placeholder="e.g. 480"
                 className="border-slate-300"
                 required
               />

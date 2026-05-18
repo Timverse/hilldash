@@ -96,3 +96,13 @@ CREATE POLICY "Allow full access to business_finance_reports for admins"
 ON public.business_finance_reports 
 FOR ALL USING (true) WITH CHECK (true);
 ```
+
+---
+
+### 🏷️ 6. Enable Product MRP (Maximum Retail Price) Column
+Run this snippet once in your Supabase SQL Editor to add the `mrp` column to your `products` table. This allows you to set an MRP (e.g., ₹500) alongside your Sawaïom Price (e.g., ₹480) for all current and future products.
+
+```sql
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS mrp NUMERIC DEFAULT 500;
+```

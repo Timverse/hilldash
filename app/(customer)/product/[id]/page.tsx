@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { ShoppingCart, Star, ShieldCheck, Truck, RefreshCw, ChevronLeft, Minus, Plus } from "lucide-react"
+import { ShoppingCart, Star, ShieldCheck, Truck, RefreshCw, ChevronLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -87,7 +87,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </h1>
               <div className="flex items-end gap-4 mb-8">
                 <span className="text-4xl font-black text-slate-900">₹{product.price}</span>
-                <span className="text-xl text-slate-400 line-through mb-1">₹{Math.round(product.price * 1.2)}</span>
+                <span className="text-xl text-slate-400 line-through mb-1">₹{product.mrp || Math.round(product.price * 1.2)}</span>
                 <Badge className="bg-emerald-500 text-white border-none font-bold mb-1 ml-2">SAVE 20%</Badge>
               </div>
               <p className="text-slate-500 text-lg leading-relaxed max-w-xl">
