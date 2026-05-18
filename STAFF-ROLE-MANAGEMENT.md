@@ -70,3 +70,29 @@ ADD COLUMN IF NOT EXISTS daily_earnings NUMERIC DEFAULT 0,
 ADD COLUMN IF NOT EXISTS daily_deliveries INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS last_payout_date TIMESTAMPTZ;
 ```
+
+---
+
+### 📊 5. Enable Business Finance Ledger Table
+Run this snippet once in your Supabase SQL Editor to create the `business_finance_reports` table. This tracks all gross revenue, rider salary payouts, inventory costs, and manual income/expenses.
+
+```sql
+CREATE TABLE IF NOT EXISTS public.business_finance_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('income', 'expense')),
+  category TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  payment_method TEXT NOT NULL DEFAULT 'cash',
+  description TEXT,
+  reference_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  recorded_by TEXT
+);
+
+-- Enable RLS and create open admin policies if needed
+ALTER TABLE public.business_finance_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow full access to business_finance_reports for admins" 
+ON public.business_finance_reports 
+FOR ALL USING (true) WITH CHECK (true);
+```

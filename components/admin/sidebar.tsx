@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   ShoppingBag, PackageCheck, Tags, MapPin,
-  Settings, LayoutDashboard, LogOut, ClipboardList, Bike, Gift
+  Settings, LayoutDashboard, LogOut, ClipboardList, Bike, Gift, DollarSign
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -17,6 +17,7 @@ const storeItems = [
   { href: "/dashboard/categories", label: "Categories", icon: Tags },
   { href: "/dashboard/orders", label: "Live Orders", icon: ClipboardList },
   { href: "/dashboard/riders", label: "Delivery Riders", icon: Bike },
+  { href: "/dashboard/finance", label: "Finance & Accounting", icon: DollarSign },
 ]
 
 const systemItems = [
