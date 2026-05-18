@@ -26,7 +26,11 @@ export function AddProductDialog({
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState("")
   const [isActive, setIsActive] = useState(true)
+  const [stockStatus, setStockStatus] = useState("in_stock")
   const [imageFile, setImageFile] = useState<File | null>(null)
+
+  // Filter out seafood and meat categories
+  const safeCategories = categories.filter(c => !c.name.toLowerCase().includes('seafood') && !c.name.toLowerCase().includes('meat'))
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
@@ -46,6 +50,7 @@ export function AddProductDialog({
     const nameEl = form.elements.namedItem("name") as HTMLInputElement
     const mrpEl = form.elements.namedItem("mrp") as HTMLInputElement
     const priceEl = form.elements.namedItem("price") as HTMLInputElement
+    const unitEl = form.elements.namedItem("unit") as HTMLInputElement
     const stockEl = form.elements.namedItem("stock") as HTMLInputElement
     const descEl = form.elements.namedItem("description") as HTMLInputElement
     const batchEl = form.elements.namedItem("batch_number") as HTMLInputElement
@@ -64,24 +69,15 @@ export function AddProductDialog({
       formData.append("category_id", selectedCategoryId)
       if (mrpEl?.value) formData.append("mrp", mrpEl.value)
       formData.append("price", priceEl.value)
+      formData.append("unit", unitEl?.value?.trim() || "1 Unit")
+      formData.append("stock_status", stockStatus)
       formData.append("stock", stockEl.value || "0")
       if (isActive) formData.append("is_active", "on")
       if (batchEl?.value) formData.append("batch_number", batchEl.value.trim())
       if (expiryEl?.value) formData.append("expiry_date", expiryEl.value)
       if (imageFile) formData.append("image", imageFile)
 
-      console.log("Submitting product:", {
-        name: nameEl.value,
-        category_id: selectedCategoryId,
-        mrp: mrpEl?.value,
-        price: priceEl.value,
-        stock: stockEl.value,
-        batch_number: batchEl?.value,
-        expiry_date: expiryEl?.value
-      })
-
       const result = await createProductAction(formData)
-      console.log("Result:", result)
 
       if (result?.error) {
         toast.error(result.error)
@@ -92,6 +88,7 @@ export function AddProductDialog({
         setImageFile(null)
         setSelectedCategoryId("")
         setIsActive(true)
+        setStockStatus("in_stock")
         onOpenChange(false)
       }
     } catch (err) {
@@ -104,7 +101,7 @@ export function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white font-sans antialiased">
+      <DialogContent className="sm:max-w-[550px] bg-white font-sans antialiased max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-900">Add New Product</DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -136,25 +133,40 @@ export function AddProductDialog({
             />
           </div>
 
-          {/* Category */}
-          <div className="space-y-1.5">
-            <Label className="text-slate-700 font-medium">Category *</Label>
-            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-              <SelectTrigger className="border-slate-300 bg-white text-slate-900 w-full">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-slate-200 z-[200]">
-                {categories.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-slate-500">No categories yet. Create one first.</div>
-                ) : (
-                  categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">
-                      {cat.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label className="text-slate-700 font-medium">Category *</Label>
+              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger className="border-slate-300 bg-white text-slate-900 w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-slate-200 z-[200]">
+                  {safeCategories.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-slate-500">No categories available.</div>
+                  ) : (
+                    safeCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id} className="text-slate-900 hover:bg-slate-50">
+                        {cat.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Unit / Variant */}
+            <div className="space-y-1.5">
+              <Label htmlFor="unit" className="text-slate-700 font-medium">Unit Variant *</Label>
+              <Input
+                id="unit"
+                name="unit"
+                placeholder="e.g. 1 kg, 500 g, 1 Litre, 500 ml, 1 Bunch"
+                defaultValue="1 kg"
+                className="border-slate-300"
+                required
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -188,29 +200,44 @@ export function AddProductDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4 items-center">
+            {/* Stock Status */}
+            <div className="space-y-1.5 col-span-1">
+              <Label className="text-slate-700 font-medium">Stock Status</Label>
+              <Select value={stockStatus} onValueChange={setStockStatus}>
+                <SelectTrigger className="border-slate-300 bg-white text-slate-900">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-slate-200 z-[200]">
+                  <SelectItem value="in_stock" className="text-emerald-700 font-bold">In Stock</SelectItem>
+                  <SelectItem value="limited_stock" className="text-amber-600 font-bold">Limited Stock</SelectItem>
+                  <SelectItem value="out_of_stock" className="text-red-600 font-bold">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Stock */}
-            <div className="space-y-1.5">
-              <Label htmlFor="stock" className="text-slate-700 font-medium">Initial Stock</Label>
+            <div className="space-y-1.5 col-span-1">
+              <Label htmlFor="stock" className="text-slate-700 font-medium">Internal Stock</Label>
               <Input
                 id="stock"
                 name="stock"
                 type="number"
                 min="0"
-                defaultValue="0"
+                defaultValue="100"
                 className="border-slate-300"
               />
             </div>
 
             {/* Available toggle */}
-            <div className="space-y-1.5">
-              <Label className="text-slate-700 font-medium">Available for Sale</Label>
+            <div className="space-y-1.5 col-span-1 flex flex-col justify-center mt-1">
+              <Label className="text-slate-700 font-medium mb-2">Active</Label>
               <div className="flex items-center h-9">
                 <Switch
                   checked={isActive}
                   onCheckedChange={setIsActive}
                 />
-                <span className="ml-2 text-sm text-slate-500">{isActive ? "Yes" : "No"}</span>
+                <span className="ml-2 text-xs text-slate-500 font-bold">{isActive ? "Yes" : "No"}</span>
               </div>
             </div>
           </div>

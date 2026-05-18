@@ -12,6 +12,8 @@ export async function createProductAction(formData: FormData) {
   console.log('category_id:', formData.get('category_id'))
   console.log('price:', formData.get('price'))
   console.log('mrp:', formData.get('mrp'))
+  console.log('unit:', formData.get('unit'))
+  console.log('stock_status:', formData.get('stock_status'))
   console.log('stock:', formData.get('stock'))
   console.log('is_active:', formData.get('is_active'))
   console.log('batch_number:', formData.get('batch_number'))
@@ -38,6 +40,8 @@ export async function createProductAction(formData: FormData) {
   const price = parseFloat(formData.get('price') as string)
   const mrpStr = formData.get('mrp') as string
   const mrp = mrpStr ? parseFloat(mrpStr) : (price > 0 ? Math.round(price * 1.2) : 500)
+  const unit = formData.get('unit') as string || '1 Unit'
+  const stock_status = formData.get('stock_status') as string || 'in_stock'
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
   const batch_number = formData.get('batch_number') as string || null
@@ -69,12 +73,14 @@ export async function createProductAction(formData: FormData) {
     }
   }
 
-  const insertPayloadWithMrp = {
+  const insertPayloadFull = {
     name,
     description: description || null,
     category_id: category_id || null,
     price,
     mrp,
+    unit,
+    stock_status,
     stock: isNaN(stock) ? 0 : stock,
     is_active,
     batch_number,
@@ -83,20 +89,20 @@ export async function createProductAction(formData: FormData) {
     warehouse_id: warehouseId
   }
 
-  console.log('Inserting product with MRP:', insertPayloadWithMrp)
+  console.log('Inserting product with full payload:', insertPayloadFull)
 
-  // Insert Product with MRP first
+  // Insert Product with all fields first
   let { data: inserted, error: insertError } = await supabase
     .from('products')
-    .insert(insertPayloadWithMrp)
+    .insert(insertPayloadFull)
     .select()
     .single()
 
-  // Fallback if mrp column does not exist yet in Supabase
-  if (insertError && insertError.message.includes('mrp')) {
-    console.warn('mrp column not found in products table, retrying insert without mrp...')
-    const { mrp: _, ...insertPayloadWithoutMrp } = insertPayloadWithMrp
-    const retryRes = await supabase.from('products').insert(insertPayloadWithoutMrp).select().single()
+  // Fallback if mrp, unit, or stock_status columns do not exist yet in Supabase
+  if (insertError && (insertError.message.includes('mrp') || insertError.message.includes('unit') || insertError.message.includes('stock_status'))) {
+    console.warn('New columns (mrp, unit, stock_status) not found in products table, retrying insert with legacy payload...')
+    const { mrp: _1, unit: _2, stock_status: _3, ...insertPayloadLegacy } = insertPayloadFull
+    const retryRes = await supabase.from('products').insert(insertPayloadLegacy).select().single()
     inserted = retryRes.data
     insertError = retryRes.error
   }
@@ -124,18 +130,22 @@ export async function editProductAction(id: string, formData: FormData) {
   const price = parseFloat(formData.get('price') as string)
   const mrpStr = formData.get('mrp') as string
   const mrp = mrpStr ? parseFloat(mrpStr) : (price > 0 ? Math.round(price * 1.2) : 500)
+  const unit = formData.get('unit') as string || '1 Unit'
+  const stock_status = formData.get('stock_status') as string || 'in_stock'
   const stock = parseInt(formData.get('stock') as string, 10)
   const is_active = formData.get('is_active') === 'on'
   const batch_number = formData.get('batch_number') as string || null
   const expiry_date = formData.get('expiry_date') as string || null
   const imageFile = formData.get('image') as File | null
 
-  const updateDataWithMrp: any = { 
+  const updateDataFull: any = { 
     name, 
     description, 
     category_id, 
     price, 
     mrp,
+    unit,
+    stock_status,
     stock, 
     is_active,
     batch_number,
@@ -150,17 +160,17 @@ export async function editProductAction(id: string, formData: FormData) {
     const { error: uploadError } = await supabase.storage.from('product-images').upload(filePath, imageFile)
     if (!uploadError) {
       const { data } = supabase.storage.from('product-images').getPublicUrl(filePath)
-      updateDataWithMrp.image_url = data.publicUrl
+      updateDataFull.image_url = data.publicUrl
     }
   }
 
-  let { error } = await supabase.from('products').update(updateDataWithMrp).eq('id', id)
+  let { error } = await supabase.from('products').update(updateDataFull).eq('id', id)
 
-  // Fallback if mrp column does not exist yet in Supabase
-  if (error && error.message.includes('mrp')) {
-    console.warn('mrp column not found in products table, retrying update without mrp...')
-    const { mrp: _, ...updateDataWithoutMrp } = updateDataWithMrp
-    const retryRes = await supabase.from('products').update(updateDataWithoutMrp).eq('id', id)
+  // Fallback if mrp, unit, or stock_status columns do not exist yet in Supabase
+  if (error && (error.message.includes('mrp') || error.message.includes('unit') || error.message.includes('stock_status'))) {
+    console.warn('New columns (mrp, unit, stock_status) not found in products table, retrying update with legacy payload...')
+    const { mrp: _1, unit: _2, stock_status: _3, ...updateDataLegacy } = updateDataFull
+    const retryRes = await supabase.from('products').update(updateDataLegacy).eq('id', id)
     error = retryRes.error
   }
 
@@ -181,6 +191,27 @@ export async function toggleProductAvailability(productId: string, currentStatus
 
   if (error) {
     return { error: 'Failed to update availability' }
+  }
+
+  revalidatePath('/dashboard/products', 'page')
+  return { success: true }
+}
+
+export async function updateProductStockStatusAction(productId: string, stockStatus: string) {
+  const supabase = await createClient()
+
+  let { error } = await supabase
+    .from('products')
+    .update({ stock_status: stockStatus })
+    .eq('id', productId)
+
+  if (error && error.message.includes('stock_status')) {
+    console.warn('stock_status column not found, ignoring update...')
+    return { success: true }
+  }
+
+  if (error) {
+    return { error: 'Failed to update stock status' }
   }
 
   revalidatePath('/dashboard/products', 'page')

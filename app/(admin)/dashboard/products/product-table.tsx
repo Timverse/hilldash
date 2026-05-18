@@ -7,8 +7,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Image as ImageIcon, Pencil, AlertTriangle, Clock } from "lucide-react"
-import { toggleProductAvailability } from "@/app/actions/inventory"
+import { toggleProductAvailability, updateProductStockStatusAction } from "@/app/actions/inventory"
 import { AddProductDialog } from "./add-product-dialog"
 import { EditProductDialog } from "./edit-product-dialog"
 import { toast } from "sonner"
@@ -18,6 +19,8 @@ type Product = {
   name: string
   mrp?: number | null
   price: number
+  unit?: string | null
+  stock_status?: string | null
   stock: number
   is_active: boolean
   image_url: string
@@ -38,7 +41,18 @@ export function ProductTable({ products, categories }: { products: Product[], ca
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(current ? "Product marked as Out of Stock" : "Product marked as Available")
+      toast.success(current ? "Product marked as Inactive" : "Product marked as Active")
+    }
+    setIsPending(false)
+  }
+
+  const handleStockStatusChange = async (id: string, status: string) => {
+    setIsPending(true)
+    const result = await updateProductStockStatusAction(id, status)
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success("Stock status updated successfully")
     }
     setIsPending(false)
   }
@@ -80,18 +94,19 @@ export function ProductTable({ products, categories }: { products: Product[], ca
               <TableHead className="w-16 py-4">Image</TableHead>
               <TableHead className="py-4 font-bold text-slate-700">Name</TableHead>
               <TableHead className="py-4 font-bold text-slate-700">Category</TableHead>
+              <TableHead className="py-4 font-bold text-slate-700">Unit Variant</TableHead>
               <TableHead className="py-4 font-bold text-slate-700">Batch (FIFO)</TableHead>
               <TableHead className="py-4 font-bold text-slate-700">Expiry Date</TableHead>
               <TableHead className="text-right py-4 font-bold text-slate-700">Price (₹)</TableHead>
-              <TableHead className="text-right py-4 font-bold text-slate-700">Stock</TableHead>
-              <TableHead className="text-center py-4 font-bold text-slate-700">Status</TableHead>
+              <TableHead className="text-center py-4 font-bold text-slate-700">Stock Status</TableHead>
+              <TableHead className="text-center py-4 font-bold text-slate-700">Active</TableHead>
               <TableHead className="text-center py-4 font-bold text-slate-700">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-slate-500 font-medium">
+                <TableCell colSpan={10} className="h-32 text-center text-slate-500 font-medium">
                   No products found. Add your first fresh product.
                 </TableCell>
               </TableRow>
@@ -119,6 +134,11 @@ export function ProductTable({ products, categories }: { products: Product[], ca
                       <Badge variant="outline" className="text-slate-600 font-medium bg-slate-50 border-slate-200">
                         {product.categories?.name || 'Uncategorized'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
+                        {product.unit || '1 kg'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {product.batch_number ? (
@@ -152,7 +172,22 @@ export function ProductTable({ products, categories }: { products: Product[], ca
                         <span className="font-extrabold text-slate-900">₹{product.price}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-bold text-slate-700">{product.stock}</TableCell>
+                    <TableCell className="text-center">
+                      <Select 
+                        disabled={isPending} 
+                        value={product.stock_status || "in_stock"} 
+                        onValueChange={(val) => handleStockStatusChange(product.id, val)}
+                      >
+                        <SelectTrigger className="w-[140px] h-9 text-xs font-bold border-slate-200 mx-auto">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-slate-200 z-[200]">
+                          <SelectItem value="in_stock" className="text-emerald-700 font-bold text-xs">In Stock</SelectItem>
+                          <SelectItem value="limited_stock" className="text-amber-600 font-bold text-xs">Limited Stock</SelectItem>
+                          <SelectItem value="out_of_stock" className="text-red-600 font-bold text-xs">Out of Stock</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center">
                         <Switch 

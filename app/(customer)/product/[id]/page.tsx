@@ -35,7 +35,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     .limit(4)
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen font-sans antialiased">
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 mb-12">
@@ -99,13 +99,21 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <div className="pt-4">
                <ProductActions product={product} />
                
-               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 mt-6">
-                 {product.stock > 0 ? (
-                   <span className="text-emerald-600">● In Stock ({product.stock} units available)</span>
-                 ) : (
-                   <span className="text-red-500">● Currently Out of Stock</span>
-                 )}
-               </p>
+               <div className="flex items-center gap-4 mt-6 px-1">
+                 <span className="text-sm font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                   {product.unit || '1 kg'}
+                 </span>
+
+                 <p className="text-xs font-bold uppercase tracking-widest">
+                   {product.stock_status === 'limited_stock' ? (
+                     <span className="text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">● Limited Stock</span>
+                   ) : product.stock_status === 'out_of_stock' || product.stock <= 0 ? (
+                     <span className="text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">● Currently Out of Stock</span>
+                   ) : (
+                     <span className="text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">● In Stock</span>
+                   )}
+                 </p>
+               </div>
             </div>
 
             {/* Features Bento */}

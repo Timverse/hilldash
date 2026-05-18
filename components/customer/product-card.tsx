@@ -12,6 +12,8 @@ type Product = {
   name: string
   mrp?: number | null
   price: number
+  unit?: string | null
+  stock_status?: string | null
   stock: number
   image_url: string
 }
@@ -22,11 +24,13 @@ export function ProductCard({ product }: { product: Product }) {
   const cartItem = items.find(item => item.product_id === product.id)
   const quantityInCart = cartItem?.quantity || 0
 
+  const isOutOfStock = product.stock_status === 'out_of_stock' || product.stock <= 0
+
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (product.stock <= 0) {
-      toast.error("Out of stock")
+    if (isOutOfStock) {
+      toast.error("Currently out of stock")
       return
     }
     addItem({
@@ -81,14 +85,20 @@ export function ProductCard({ product }: { product: Product }) {
             </div>
           )}
           
-          <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold text-slate-900 border border-white/20">
+          <div className="absolute top-2 right-2 bg-white/80 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold text-slate-900 border border-white/20 z-10">
             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
             <span>4.8</span>
           </div>
 
-          {product.stock <= 0 && (
-            <div className="absolute inset-0 bg-white/60 flex items-center justify-center text-slate-900 font-black text-sm backdrop-blur-[2px] uppercase tracking-widest">
-              Sold Out
+          {product.stock_status === 'limited_stock' && !isOutOfStock && (
+            <div className="absolute top-2 left-2 bg-amber-500 text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-md z-10">
+              Limited Stock
+            </div>
+          )}
+
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-slate-900 font-black text-sm backdrop-blur-[2px] uppercase tracking-widest z-20">
+              Out of Stock
             </div>
           )}
         </div>
@@ -96,7 +106,7 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="px-1">
           <p className="text-[10px] uppercase tracking-widest font-bold text-primary mb-1">Fresh Essentials</p>
           <h3 className="font-bold text-slate-900 text-lg line-clamp-1 mb-1" title={product.name}>{product.name}</h3>
-          <p className="text-slate-400 text-xs mb-4">500g / 1 Unit</p>
+          <p className="text-slate-500 text-xs mb-4 font-bold">{product.unit || '1 kg'}</p>
         </div>
       </Link>
       
@@ -134,7 +144,7 @@ export function ProductCard({ product }: { product: Product }) {
                 variant="outline"
                 className="rounded-xl border-primary text-primary font-bold hover:bg-primary hover:text-white h-10 px-6 transition-all active:scale-95" 
                 onClick={handleAdd}
-                disabled={product.stock <= 0}
+                disabled={isOutOfStock}
               >
                 Add
               </Button>

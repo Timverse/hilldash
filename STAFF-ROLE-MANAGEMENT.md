@@ -106,3 +106,18 @@ Run this snippet once in your Supabase SQL Editor to add the `mrp` column to you
 ALTER TABLE public.products 
 ADD COLUMN IF NOT EXISTS mrp NUMERIC DEFAULT 500;
 ```
+
+---
+
+### 📦 7. Enable Unit Variants & Stock Status Management (and Remove Seafood/Meat)
+Run this snippet once in your Supabase SQL Editor to remove Seafood/Meat categories from your database and add the `unit` variant and `stock_status` columns to your `products` table.
+
+```sql
+-- A. Remove Seafood and Meat categories from the database
+DELETE FROM public.categories WHERE name ILIKE '%seafood%' OR name ILIKE '%meat%';
+
+-- B. Add Unit Variant and Stock Status columns to products table
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT '1 kg',
+ADD COLUMN IF NOT EXISTS stock_status TEXT DEFAULT 'in_stock';
+```
