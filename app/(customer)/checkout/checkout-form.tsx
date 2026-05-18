@@ -268,7 +268,7 @@ export function CheckoutForm({
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
     
-    const activeSlot = isEmergency ? "⚡ Emergency Delivery (15-20 Mins)" : selectedSlot
+    const activeSlot = isEmergency ? "⚡ Emergency Delivery (Same-day till 10 PM)" : selectedSlot
     const userNotes = formData.get("notes") as string || ""
     const promoNote = selectedDiscount ? ` | Promo: ${selectedDiscount.title} (-₹${promoDiscountAmount.toFixed(2)})` : ''
     const combinedNotes = `Delivery Slot: ${activeSlot}${promoNote}${userNotes ? ` | Note: ${userNotes}` : ''}`
@@ -317,6 +317,8 @@ export function CheckoutForm({
   }
 
   const now = new Date()
+  const currentHour = now.getHours()
+  const isPast10PM = currentHour >= 22
   const tomorrow = addDays(now, 1)
   const finalTotalPayable = Math.max(0, getCartTotal() + (location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? deliveryFee : 0) + (isEmergency ? emergencyFee : 0) - pointsDiscount - promoDiscountAmount)
 
@@ -433,19 +435,25 @@ export function CheckoutForm({
             </div>
           </div>
 
-          {/* STEP 3A: SWIGGY GENIE / BLINKIT EMERGENCY DELIVERY MODE */}
+          {/* STEP 3A: SWIGGY GENIE / BLINKIT EMERGENCY DELIVERY MODE (SAME-DAY TILL 10 PM) */}
           {emergencyEnabled && (
-            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-8 md:p-10 rounded-[2.5rem] border-2 border-amber-500/30 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-3 h-full bg-amber-500" />
+            <div className={`p-8 md:p-10 rounded-[2.5rem] border-2 shadow-sm relative overflow-hidden transition-all ${
+              isPast10PM 
+                ? 'bg-slate-50 border-slate-200 opacity-75' 
+                : 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30'
+            }`}>
+              <div className={`absolute top-0 left-0 w-3 h-full ${isPast10PM ? 'bg-slate-400' : 'bg-amber-500'}`} />
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30 animate-bounce">
+                  <div className={`w-12 h-12 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+                    isPast10PM ? 'bg-slate-400 shadow-slate-400/20' : 'bg-amber-500 shadow-amber-500/30 animate-bounce'
+                  }`}>
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-amber-500 text-white border-none font-extrabold uppercase tracking-widest text-[10px] px-2.5 py-0.5 rounded-full shadow-sm">
-                        Blinkit Mode
+                      <Badge className={`${isPast10PM ? 'bg-slate-400' : 'bg-amber-500'} text-white border-none font-extrabold uppercase tracking-widest text-[10px] px-2.5 py-0.5 rounded-full shadow-sm`}>
+                        {isPast10PM ? 'Closed (Opens 8 AM)' : 'Blinkit Mode'}
                       </Badge>
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Emergency Fast Delivery</h2>
@@ -453,21 +461,37 @@ export function CheckoutForm({
                 </div>
                 
                 <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-amber-200 shadow-sm">
-                  <span className="text-sm font-black text-amber-700">+₹{emergencyFee.toFixed(2)}</span>
+                  <span className={`text-sm font-black ${isPast10PM ? 'text-slate-400' : 'text-amber-700'}`}>+₹{emergencyFee.toFixed(2)}</span>
                   <Switch 
                     checked={isEmergency} 
-                    onCheckedChange={setIsEmergency} 
+                    onCheckedChange={(checked) => {
+                      if (isPast10PM) {
+                        toast.error("Emergency Delivery is currently closed for today (Available daily until 10 PM). Please select a standard slot for tomorrow.");
+                        return;
+                      }
+                      setIsEmergency(checked);
+                    }} 
+                    disabled={isPast10PM}
                   />
                 </div>
               </div>
 
-              <div className="pl-4 md:pl-6 border-l-2 border-amber-200 ml-6 pt-2 space-y-2">
-                <p className="text-sm font-bold text-slate-700 leading-snug">
-                  Need your items urgently? Get lightning fast priority dispatch and delivery within <span className="text-amber-600 font-black underline">15-20 Minutes</span>!
-                </p>
-                <p className="text-xs text-slate-500 font-medium">
-                  Dedicated rider assigned immediately. Perfect for urgent groceries, medicines, or last-minute needs.
-                </p>
+              <div className={`pl-4 md:pl-6 border-l-2 ${isPast10PM ? 'border-slate-300' : 'border-amber-200'} ml-6 pt-2 space-y-2`}>
+                {isPast10PM ? (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 text-xs font-bold flex items-center gap-2 shadow-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    Emergency Delivery is currently closed for today (Available daily until 10 PM). Please select a standard delivery slot for tomorrow morning.
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-slate-700 leading-snug">
+                      Need your items urgently? Get lightning fast priority dispatch and delivery within <span className="text-amber-600 font-black underline">15-20 Minutes</span>!
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Available for same-day delivery until <span className="font-bold text-slate-800">10 PM</span>. No time slots required—priority rider assigned immediately!
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -494,7 +518,7 @@ export function CheckoutForm({
               {isEmergency ? (
                 <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 font-bold flex items-center gap-3 shadow-sm">
                   <Zap className="w-6 h-6 text-amber-500 shrink-0" />
-                  <span>Time slots disabled. Your order is scheduled for lightning fast Emergency Delivery (15-20 Mins)!</span>
+                  <span>Time slots disabled. Your order is scheduled for lightning fast Emergency Delivery (Same-day till 10 PM)!</span>
                 </div>
               ) : (
                 <>
@@ -846,7 +870,7 @@ export function CheckoutForm({
               <div className="flex justify-between items-center text-amber-400 text-xs font-bold pt-2 border-t border-white/5">
                 <span>Dispatch Mode</span>
                 <span className="bg-amber-500/20 px-2.5 py-1 rounded-xl border border-amber-500/30 text-[11px] shadow-sm">
-                  ⚡ 15-20 Mins (Priority)
+                  ⚡ Same-day till 10 PM
                 </span>
               </div>
             )}
