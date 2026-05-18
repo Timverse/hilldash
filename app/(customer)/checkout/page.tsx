@@ -30,6 +30,14 @@ export default async function CheckoutPage() {
     .from('products')
     .select('id, category_id')
 
+  // Fetch global settings for emergency delivery configuration
+  const { data: settings } = await supabase
+    .from('global_settings')
+    .select('*')
+
+  const emergencyEnabled = settings?.find(s => s.key === 'emergency_delivery_enabled')?.value === 'true'
+  const emergencyFee = parseFloat(settings?.find(s => s.key === 'emergency_delivery_fee')?.value || '20')
+
   return (
     <div className="bg-slate-50/50 min-h-screen py-12 md:py-20 font-sans antialiased">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -49,6 +57,8 @@ export default async function CheckoutPage() {
           userPoints={userPoints} 
           discounts={discounts || []} 
           products={products || []}
+          emergencyEnabled={emergencyEnabled}
+          emergencyFee={emergencyFee}
         />
       </div>
     </div>

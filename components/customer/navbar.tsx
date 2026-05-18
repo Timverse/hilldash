@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { resolveJowaiLocality } from "@/lib/utils/distance"
 
 export function CustomerNavbar() {
   const items = useCartStore((state) => state.items)
@@ -54,24 +55,23 @@ export function CustomerNavbar() {
           const data = await res.json()
 
           const address = data.address || {}
-          const preciseLocality =
-            address.road ||
-            address.neighbourhood ||
-            address.residential ||
+          const rawLocality =
             address.suburb ||
-            address.quarter ||
-            address.hamlet ||
+            address.neighbourhood ||
+            address.road ||
+            address.residential ||
             address.village ||
             address.town ||
-            address.city ||
             "Jowai, Meghalaya"
 
+          const preciseLocality = resolveJowaiLocality(latitude, longitude, rawLocality)
           setLocationName(preciseLocality)
           toast.success(`Precise location set: ${preciseLocality}! 📍`)
         } catch (err) {
           console.error("Reverse geocoding error:", err)
-          setLocationName("Jowai, Meghalaya")
-          toast.success("Precise location captured! 📍")
+          const preciseLocality = resolveJowaiLocality(latitude, longitude)
+          setLocationName(preciseLocality)
+          toast.success(`Precise location set: ${preciseLocality}! 📍`)
         } finally {
           setLocating(false)
         }

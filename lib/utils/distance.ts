@@ -55,3 +55,40 @@ export function calculateDeliveryFee(distanceKm: number): number {
   const extraKm = Math.ceil(distanceKm - 2);
   return 20 + extraKm * 10;
 }
+
+/**
+ * Resolves precise Jowai locality name from GPS coordinates.
+ * Matches against known Jowai hubs/neighborhoods.
+ */
+export function resolveJowaiLocality(lat: number, lng: number, nominatimName?: string): string {
+  const LOCALITIES = [
+    { name: "Mookyrdup", lat: 25.4484, lng: 92.2031 },
+    { name: "Ladthadlaboh", lat: 25.4520, lng: 92.2100 },
+    { name: "Iawmusiang", lat: 25.4508, lng: 92.1868 },
+    { name: "Mission Compound", lat: 25.4550, lng: 92.1950 },
+    { name: "Carolin Colony", lat: 25.4450, lng: 92.2150 },
+    { name: "Dulong", lat: 25.4580, lng: 92.1900 },
+    { name: "Panaliar", lat: 25.4600, lng: 92.1850 },
+    { name: "Tympang", lat: 25.4515, lng: 92.1800 },
+    { name: "Chutwakhu", lat: 25.4490, lng: 92.1920 },
+    { name: "Khimusniang", lat: 25.4530, lng: 92.1880 },
+    { name: "Salang", lat: 25.4620, lng: 92.1950 }
+  ];
+
+  let bestLocality = "Jowai Central";
+  let minDistance = 5.0; // max 5km radius
+
+  for (const loc of LOCALITIES) {
+    const dist = calculateDistanceKm(lat, lng, loc.lat, loc.lng);
+    if (dist < minDistance) {
+      minDistance = dist;
+      bestLocality = loc.name;
+    }
+  }
+
+  if (minDistance < 1.5) {
+    return bestLocality;
+  }
+
+  return nominatimName && nominatimName !== "Jowai, Meghalaya" ? nominatimName : bestLocality;
+}

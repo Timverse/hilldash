@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { calculateDistanceKm, calculateDeliveryFee } from '@/lib/utils/distance'
 
 export async function processCheckoutAction(formData: FormData) {
   const supabase = await createClient()
+  const adminClient = createAdminClient()
 
   console.log('=== processCheckoutAction called ===')
 
@@ -65,7 +67,7 @@ export async function processCheckoutAction(formData: FormData) {
   let pointsDiscount = 0
 
   if (user && pointsApplied > 0) {
-    const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single()
+    const { data: profile } = await adminClient.from('profiles').select('points').eq('id', user.id).single()
     const currentPoints = profile?.points || 0
     if (pointsApplied > currentPoints) {
       pointsApplied = currentPoints
@@ -77,10 +79,17 @@ export async function processCheckoutAction(formData: FormData) {
   // PROMOTIONAL DISCOUNT
   const promoDiscount = parseFloat(formData.get('promo_discount') as string) || 0
 
-  const finalTotal = Math.max(0, subtotal + deliveryFee - pointsDiscount - promoDiscount)
+  // EMERGENCY DELIVERY FEE
+  const emergencyFee = parseFloat(formData.get('emergency_fee') as string) || 0
+  const isEmergency = formData.get('is_emergency') === 'true'
 
-  // Combine Points Discount into notes so Admin sees it prominently
+  const finalTotal = Math.max(0, subtotal + deliveryFee + emergencyFee - pointsDiscount - promoDiscount)
+
+  // Combine Notes
   let finalNotes = notes || ""
+  if (isEmergency || emergencyFee > 0) {
+    finalNotes = `⚡ EMERGENCY FAST DELIVERY (Fee: ₹${emergencyFee}) | ` + finalNotes
+  }
   if (pointsDiscount > 0) {
     finalNotes += `${finalNotes ? ' | ' : ''}Loyalty Discount: ₹${pointsDiscount.toFixed(2)} (${pointsApplied} Points Applied)`
   }
@@ -157,18 +166,22 @@ export async function processCheckoutAction(formData: FormData) {
     }
   }
 
-  // EARN RANDOM LOYALTY POINTS (1-100 with 0.001 probability of 100)
+  // EARN RANDOM LOYALTY POINTS (1-100 with 0.001 probability of 100) using adminClient to bypass RLS
   let earnedPoints = 0
   if (user) {
     const isJackpot = Math.random() < 0.001
     earnedPoints = isJackpot ? 100 : Math.floor(Math.random() * 100) + 1
 
-    const { data: profile } = await supabase.from('profiles').select('points').eq('id', user.id).single()
+    const { data: profile } = await adminClient.from('profiles').select('points').eq('id', user.id).single()
     const currentPoints = profile?.points || 0
     const newPoints = currentPoints - pointsApplied + earnedPoints
     
-    await supabase.from('profiles').update({ points: newPoints }).eq('id', user.id)
-    console.log(`Updated points for user ${user.id}: ${currentPoints} - ${pointsApplied} + ${earnedPoints} = ${newPoints}`)
+    const { error: updateError } = await adminClient.from('profiles').update({ points: newPoints }).eq('id', user.id)
+    if (updateError) {
+      console.error('Failed to update user points with adminClient:', updateError)
+    } else {
+      console.log(`Updated points for user ${user.id} via adminClient: ${currentPoints} - ${pointsApplied} + ${earnedPoints} = ${newPoints}`)
+    }
   }
 
   revalidatePath('/dashboard', 'page')
