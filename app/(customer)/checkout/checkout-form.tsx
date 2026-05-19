@@ -50,10 +50,10 @@ const TIME_SLOTS = [
   { id: "slot-6", label: "06:00 PM - 08:00 PM", startHour: 18 },
 ]
 
-export function CheckoutForm({ 
-  warehouse, userPoints = 0, userProfile = null, discounts = [], products = [], emergencyEnabled = false, emergencyFee = 20 
-}: { 
-  warehouse?: Warehouse | null; userPoints?: number; userProfile?: any; discounts?: Discount[]; products?: ProductMapping[]; emergencyEnabled?: boolean; emergencyFee?: number 
+export function CheckoutForm({
+  warehouse, userPoints = 0, userProfile = null, discounts = [], products = [], emergencyEnabled = false, emergencyFee = 20
+}: {
+  warehouse?: Warehouse | null; userPoints?: number; userProfile?: any; discounts?: Discount[]; products?: ProductMapping[]; emergencyEnabled?: boolean; emergencyFee?: number
 }) {
   const router = useRouter()
   const { items, getCartTotal, clearCart } = useCartStore()
@@ -127,11 +127,11 @@ export function CheckoutForm({
 
   useEffect(() => {
     setMounted(true)
-    
+
     // Calculate available slots for today based on current hour
     const now = new Date()
     const currentHour = now.getHours()
-    
+
     const todaySlots = TIME_SLOTS.filter(slot => currentHour < slot.startHour)
     setAvailableTodaySlots(todaySlots)
 
@@ -187,7 +187,7 @@ export function CheckoutForm({
   const getLocation = () => {
     setIsGettingLocation(true)
     setLocationError("")
-    
+
     if (!navigator.geolocation) {
       setIsGettingLocation(false);
       toast.error("Geolocation is not supported by your browser. Please enter your address manually.");
@@ -200,7 +200,7 @@ export function CheckoutForm({
         const lng = position.coords.longitude
         setLocation({ lat, lng })
         setIsGettingLocation(false)
-        
+
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
             headers: { 'User-Agent': 'Sawaïom/1.0' }
@@ -309,7 +309,7 @@ export function CheckoutForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     if (!location) {
       toast.error("Please tap 'Tap for Precise GPS Location' or select a saved address so riders can navigate exactly to your doorstep.")
       return
@@ -332,7 +332,7 @@ export function CheckoutForm({
 
     setIsSubmitting(true)
     const formData = new FormData(e.currentTarget)
-    
+
     const activeSlot = isEmergency ? "⚡ Emergency Delivery (Same-day till 10 PM)" : selectedSlot
     const userNotes = formData.get("notes") as string || ""
     const promoNote = selectedDiscount ? ` | Promo: ${selectedDiscount.title} (-₹${promoDiscountAmount.toFixed(2)})` : ''
@@ -392,7 +392,7 @@ export function CheckoutForm({
       {/* SWIGGY STYLE LEFT FORM SECTION */}
       <div className="flex-1 w-full space-y-8">
         <form onSubmit={handleSubmit} id="swiggy-checkout-form" className="space-y-8">
-          
+
           {/* STEP 1: ACCOUNT / CONTACT DETAILS */}
           <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 left-0 w-3 h-full bg-slate-900" />
@@ -408,7 +408,7 @@ export function CheckoutForm({
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Contact Details</h2>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Full Name</label>
@@ -440,7 +440,7 @@ export function CheckoutForm({
 
               <AnimatePresence>
                 {location && (
-                  <motion.span 
+                  <motion.span
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-emerald-600 flex items-center text-xs font-black uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200 shadow-sm"
@@ -466,29 +466,29 @@ export function CheckoutForm({
                 {isAddingNewAddress ? (
                   <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 shadow-inner animate-fadeIn">
                     <h4 className="font-bold text-slate-900 text-sm mb-1">Add New Permanent Address (Amazon Style)</h4>
-                    <Input 
-                      placeholder="Address Title (e.g. Mom's House, Work)" 
-                      value={newTitle} 
+                    <Input
+                      placeholder="Address Title (e.g. Mom's House, Work)"
+                      value={newTitle}
                       onChange={e => setNewTitle(e.target.value)}
                       className="h-12 rounded-xl bg-white border-slate-200 font-medium text-sm"
                     />
-                    <Textarea 
-                      placeholder="Complete Street Address, Flat/House No & Landmark" 
-                      rows={2} 
-                      value={newAddress} 
+                    <Textarea
+                      placeholder="Complete Street Address, Flat/House No & Landmark"
+                      rows={2}
+                      value={newAddress}
                       onChange={e => setNewAddress(e.target.value)}
                       className="rounded-xl bg-white border-slate-200 font-medium text-sm"
                     />
                     <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={getLocation} 
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={getLocation}
                         disabled={isGettingLocation}
                         className={`rounded-xl font-bold text-xs h-10 px-3 border-2 ${location ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-primary text-primary hover:bg-primary/5'}`}
                       >
-                        <MapPin className="w-3.5 h-3.5 mr-1.5" /> 
+                        <MapPin className="w-3.5 h-3.5 mr-1.5" />
                         {isGettingLocation ? "Locating GPS..." : location ? "GPS Captured ✓" : "Capture Precise GPS"}
                       </Button>
                       <div className="flex gap-2">
@@ -502,20 +502,18 @@ export function CheckoutForm({
                     {addresses.map((addr) => {
                       const isSelected = activeAddressId === addr.id
                       return (
-                        <div 
-                          key={addr.id} 
+                        <div
+                          key={addr.id}
                           onClick={() => {
                             setActiveAddress(addr.id)
                             toast.success(`Active address switched to ${addr.title || addr.locality}`)
                           }}
-                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-4 shadow-sm ${
-                            isSelected ? 'bg-primary/5 border-primary shadow-md shadow-primary/5' : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-                          }`}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-4 shadow-sm ${isSelected ? 'bg-primary/5 border-primary shadow-md shadow-primary/5' : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                            }`}
                         >
                           <div className="flex items-start gap-3.5 overflow-hidden">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                              isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${isSelected ? 'border-primary bg-primary' : 'border-slate-300 bg-white'
+                              }`}>
                               {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                             </div>
                             <div className="overflow-hidden">
@@ -528,15 +526,15 @@ export function CheckoutForm({
                           </div>
 
                           {addresses.length > 1 && (
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 deleteAddress(addr.id)
                                 toast.success("Address deleted permanently")
-                              }} 
+                              }}
                               className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl h-9 w-9 shrink-0 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -556,14 +554,13 @@ export function CheckoutForm({
 
               <div className="space-y-3 pt-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Precise GPS Verification (Mandatory for Riders)</label>
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   variant="outline"
-                  className={`w-full h-16 rounded-2xl border-2 font-bold text-base sm:text-lg transition-all active:scale-[0.98] shadow-sm ${
-                    location 
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                  className={`w-full h-16 rounded-2xl border-2 font-bold text-base sm:text-lg transition-all active:scale-[0.98] shadow-sm ${location
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                       : 'border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5'
-                  }`}
+                    }`}
                   onClick={getLocation}
                   disabled={isGettingLocation}
                 >
@@ -575,9 +572,9 @@ export function CheckoutForm({
                     <><MapPin className="w-6 h-6 mr-3" /> Tap for Precise GPS Location (Required)</>
                   )}
                 </Button>
-                
+
                 {locationError && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 shadow-sm"
@@ -599,40 +596,38 @@ export function CheckoutForm({
 
           {/* STEP 3A: SWIGGY GENIE / BLINKIT EMERGENCY DELIVERY MODE (SAME-DAY TILL 10 PM) */}
           {emergencyEnabled && (
-            <div className={`p-8 md:p-10 rounded-[2.5rem] border-2 shadow-sm relative overflow-hidden transition-all ${
-              isPast10PM 
-                ? 'bg-slate-50 border-slate-200 opacity-75' 
+            <div className={`p-8 md:p-10 rounded-[2.5rem] border-2 shadow-sm relative overflow-hidden transition-all ${isPast10PM
+                ? 'bg-slate-50 border-slate-200 opacity-75'
                 : 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30'
-            }`}>
+              }`}>
               <div className={`absolute top-0 left-0 w-3 h-full ${isPast10PM ? 'bg-slate-400' : 'bg-amber-500'}`} />
               <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-                    isPast10PM ? 'bg-slate-400 shadow-slate-400/20' : 'bg-amber-500 shadow-amber-500/30 animate-bounce'
-                  }`}>
+                  <div className={`w-12 h-12 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${isPast10PM ? 'bg-slate-400 shadow-slate-400/20' : 'bg-amber-500 shadow-amber-500/30 animate-bounce'
+                    }`}>
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <Badge className={`${isPast10PM ? 'bg-slate-400' : 'bg-amber-500'} text-white border-none font-extrabold uppercase tracking-widest text-[10px] px-2.5 py-0.5 rounded-full shadow-sm`}>
-                        {isPast10PM ? 'Closed (Opens 8 AM)' : 'Blinkit Mode'}
+                        {isPast10PM ? 'Closed (Opens 8 AM)' : 'Cheetah Mode'}
                       </Badge>
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Emergency Fast Delivery</h2>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-amber-200 shadow-sm">
                   <span className={`text-sm font-black ${isPast10PM ? 'text-slate-400' : 'text-amber-700'}`}>+₹{emergencyFee.toFixed(2)}</span>
-                  <Switch 
-                    checked={isEmergency} 
+                  <Switch
+                    checked={isEmergency}
                     onCheckedChange={(checked) => {
                       if (isPast10PM) {
                         toast.error("Emergency Delivery is currently closed for today (Available daily until 10 PM). Please select a standard slot for tomorrow.");
                         return;
                       }
                       setIsEmergency(checked);
-                    }} 
+                    }}
                     disabled={isPast10PM}
                   />
                 </div>
@@ -659,9 +654,8 @@ export function CheckoutForm({
           )}
 
           {/* STEP 3B: SWIGGY DELIVERY TIME SLOT PICKER */}
-          <div className={`bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden transition-all ${
-            isEmergency ? 'opacity-50 pointer-events-none' : ''
-          }`}>
+          <div className={`bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden transition-all ${isEmergency ? 'opacity-50 pointer-events-none' : ''
+            }`}>
             <div className="absolute top-0 left-0 w-3 h-full bg-purple-600" />
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-purple-600 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20">
@@ -691,11 +685,10 @@ export function CheckoutForm({
                       variant="ghost"
                       onClick={() => handleDayChange("today")}
                       disabled={availableTodaySlots.length === 0}
-                      className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
-                        selectedDay === "today" 
-                          ? 'bg-white text-slate-900 shadow-md' 
+                      className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${selectedDay === "today"
+                          ? 'bg-white text-slate-900 shadow-md'
                           : 'text-slate-500 hover:text-slate-900 disabled:opacity-30'
-                      }`}
+                        }`}
                     >
                       <Calendar className="w-4 h-4 mr-2 text-primary" />
                       Today ({format(now, "dd MMM")})
@@ -704,11 +697,10 @@ export function CheckoutForm({
                       type="button"
                       variant="ghost"
                       onClick={() => handleDayChange("tomorrow")}
-                      className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${
-                        selectedDay === "tomorrow" 
-                          ? 'bg-white text-slate-900 shadow-md' 
+                      className={`flex-1 h-12 rounded-xl font-bold text-sm transition-all ${selectedDay === "tomorrow"
+                          ? 'bg-white text-slate-900 shadow-md'
                           : 'text-slate-500 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       <Calendar className="w-4 h-4 mr-2 text-purple-600" />
                       Tomorrow ({format(tomorrow, "dd MMM")})
@@ -730,25 +722,22 @@ export function CheckoutForm({
                         <div
                           key={slot.id}
                           onClick={() => handleSlotSelect(slot.label)}
-                          className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer shadow-sm ${
-                            isSelected 
-                              ? 'bg-purple-50/50 border-purple-600 shadow-md shadow-purple-600/10' 
+                          className={`flex items-center justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer shadow-sm ${isSelected
+                              ? 'bg-purple-50/50 border-purple-600 shadow-md shadow-purple-600/10'
                               : 'bg-slate-50/50 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-3.5">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-purple-600 bg-purple-600' : 'border-slate-300 bg-white'
+                              }`}>
                               {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                             </div>
                             <span className={`font-bold text-sm ${isSelected ? 'text-purple-900' : 'text-slate-700'}`}>
                               {slot.label}
                             </span>
                           </div>
-                          <Badge className={`border-none font-bold px-2.5 py-1 text-[10px] rounded-lg shadow-sm ${
-                            isSelected ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
-                          }`}>
+                          <Badge className={`border-none font-bold px-2.5 py-1 text-[10px] rounded-lg shadow-sm ${isSelected ? 'bg-purple-600 text-white' : 'bg-white text-slate-600 border border-slate-200'
+                            }`}>
                             Available
                           </Badge>
                         </div>
@@ -786,7 +775,7 @@ export function CheckoutForm({
                       const isSelected = selectedDiscountId === d.id
                       const isEligible = cartSubtotal >= d.min_order_value
                       return (
-                        <div 
+                        <div
                           key={d.id}
                           onClick={() => {
                             if (!isEligible) {
@@ -795,13 +784,12 @@ export function CheckoutForm({
                             }
                             setSelectedDiscountId(isSelected ? "" : d.id)
                           }}
-                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-sm ${
-                            isSelected 
-                              ? 'bg-emerald-50/50 border-emerald-600 shadow-md shadow-emerald-600/10' 
-                              : !isEligible 
-                              ? 'bg-slate-50/50 border-slate-100 opacity-60 cursor-not-allowed' 
-                              : 'bg-white border-slate-200 hover:border-emerald-300'
-                          }`}
+                          className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-sm ${isSelected
+                              ? 'bg-emerald-50/50 border-emerald-600 shadow-md shadow-emerald-600/10'
+                              : !isEligible
+                                ? 'bg-slate-50/50 border-slate-100 opacity-60 cursor-not-allowed'
+                                : 'bg-white border-slate-200 hover:border-emerald-300'
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
@@ -816,9 +804,8 @@ export function CheckoutForm({
                                 {d.target_type === 'category' ? ' on specific category' : d.target_type === 'product' ? ' on specific product' : ' sitewide'}
                               </p>
                             </div>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-white'
-                            }`}>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-white'
+                              }`}>
                               {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                             </div>
                           </div>
@@ -840,7 +827,7 @@ export function CheckoutForm({
               <div className="space-y-3 pt-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1">Have a coupon code?</label>
                 <div className="flex gap-3 max-w-md">
-                  <Input 
+                  <Input
                     value={couponInput}
                     onChange={(e) => {
                       setCouponInput(e.target.value)
@@ -849,8 +836,8 @@ export function CheckoutForm({
                     placeholder="Enter custom coupon code..."
                     className="h-12 rounded-xl bg-slate-50 border-slate-200 focus-visible:ring-emerald-500 font-bold text-slate-900 uppercase tracking-wider shadow-inner"
                   />
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     onClick={handleApplyCustomCoupon}
                     className="h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 shadow-md"
                   >
@@ -884,10 +871,10 @@ export function CheckoutForm({
                         -₹{pointsDiscount.toFixed(2)}
                       </Badge>
                     )}
-                    <Switch 
-                      checked={usePoints} 
-                      onCheckedChange={setUsePoints} 
-                      disabled={userPoints < 1000} 
+                    <Switch
+                      checked={usePoints}
+                      onCheckedChange={setUsePoints}
+                      disabled={userPoints < 1000}
                     />
                   </div>
                 </div>
@@ -920,7 +907,7 @@ export function CheckoutForm({
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">Payment Method</h2>
               </div>
             </div>
-            
+
             <div className="pl-4 md:pl-6 border-l-2 border-slate-100 ml-6">
               <label className="flex items-center space-x-4 p-6 border-2 border-primary bg-primary/5 rounded-[2rem] cursor-pointer transition-all shadow-md shadow-primary/5">
                 <div className="w-6 h-6 rounded-full border-4 border-primary flex items-center justify-center bg-white shrink-0">
@@ -941,7 +928,7 @@ export function CheckoutForm({
       <div className="w-full lg:w-[420px] shrink-0">
         <div className="bg-slate-900 text-white p-8 md:p-10 rounded-[3rem] shadow-2xl sticky top-28 overflow-hidden space-y-8 border border-white/10">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full pointer-events-none" />
-          
+
           <div className="relative z-10 border-b border-white/10 pb-6 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-black tracking-tight text-white">Order Summary</h2>
@@ -951,7 +938,7 @@ export function CheckoutForm({
               {items.length} Items
             </Badge>
           </div>
-          
+
           {/* Cart Items List */}
           <div className="space-y-6 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
             {items.map(item => (
@@ -977,12 +964,12 @@ export function CheckoutForm({
           {/* Swiggy Bill Details */}
           <div className="space-y-4 pt-6 border-t border-white/10 relative z-10">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Bill Details</h3>
-            
+
             <div className="flex justify-between text-slate-300 text-sm font-medium">
               <span>Item Total</span>
               <span className="text-white font-bold">₹{getCartTotal().toFixed(2)}</span>
             </div>
-            
+
             <div className="flex justify-between items-center text-slate-300 text-sm font-medium">
               <span>Delivery Fee</span>
               {location && distanceKm !== null && distanceKm <= (warehouse?.radius_km || 15) ? (
@@ -1036,7 +1023,7 @@ export function CheckoutForm({
                 </span>
               </div>
             )}
-            
+
             <div className="pt-6 flex flex-col gap-2 border-t border-white/10 mt-2">
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">To Pay</p>
               <div className="flex justify-between items-end">
@@ -1046,7 +1033,7 @@ export function CheckoutForm({
               </div>
             </div>
           </div>
-          
+
           {/* Swiggy Tip Box */}
           <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-start gap-3 relative z-10 shadow-sm">
             <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
@@ -1059,10 +1046,10 @@ export function CheckoutForm({
 
           {/* Swiggy Proceed Button */}
           <div className="pt-4 relative z-10">
-            <Button 
+            <Button
               form="swiggy-checkout-form"
-              type="submit" 
-              disabled={isSubmitting || !location || (!isEmergency && !selectedSlot) || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)} 
+              type="submit"
+              disabled={isSubmitting || !location || (!isEmergency && !selectedSlot) || (warehouse && distanceKm !== null ? distanceKm > warehouse.radius_km : false)}
               className="w-full h-20 text-xl font-black bg-primary hover:bg-primary/90 text-white rounded-[2rem] shadow-2xl shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-between px-8"
             >
               {isSubmitting ? (

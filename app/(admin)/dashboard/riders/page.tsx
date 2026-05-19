@@ -33,15 +33,6 @@ export default async function AdminRidersPage() {
     }
   }
 
-  // Fetch riders with warehouse info using adminClient to ensure we get all records regardless of RLS
-  // Owner sees all hubs; Superadmins see only assigned hub
-  let query = adminClient.from('riders').select('*, warehouses(name)').order('name');
-  if (assignedWarehouseId) {
-    query = query.eq('warehouse_id', assignedWarehouseId);
-  }
-
-  const { data: riders } = await query;
-
   // Fetch active warehouses for the Add Rider dropdown and Hub filter
   const { data: warehouses } = await adminClient
     .from('warehouses')
@@ -49,9 +40,24 @@ export default async function AdminRidersPage() {
     .eq('is_active', true)
     .order('name');
 
+  // Fetch riders using adminClient
+  // Owner sees all hubs; Superadmins see only assigned hub
+  let query = adminClient.from('riders').select('*').order('name');
+  if (assignedWarehouseId) {
+    query = query.eq('warehouse_id', assignedWarehouseId);
+  }
+
+  const { data: ridersData } = await query;
+
+  // Map warehouses to riders defensively in memory
+  const riders = (ridersData || []).map(rider => ({
+    ...rider,
+    warehouses: warehouses?.find(w => w.id === rider.warehouse_id) || null
+  }));
+
   return (
     <RidersClient 
-      initialRiders={riders || []} 
+      initialRiders={riders} 
       warehouses={warehouses || []} 
       userRole={userRole}
       assignedWarehouseId={assignedWarehouseId}

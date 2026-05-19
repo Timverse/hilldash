@@ -17,11 +17,21 @@ export default async function RiderPortalPage() {
   if (user) {
     const { data: rider } = await adminClient
       .from('riders')
-      .select('*, warehouses(name)')
+      .select('*')
       .eq('id', user.id)
       .single();
     if (rider) {
-      riderProfile = rider;
+      // Fetch associated warehouse name dynamically to bypass lack of foreign key constraint
+      const { data: whData } = await adminClient
+        .from('warehouses')
+        .select('name')
+        .eq('id', rider.warehouse_id)
+        .single();
+
+      riderProfile = {
+        ...rider,
+        warehouses: whData ? { name: whData.name } : null
+      };
       riderWarehouseId = rider.warehouse_id;
     }
   }
