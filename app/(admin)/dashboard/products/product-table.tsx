@@ -13,6 +13,7 @@ import { toggleProductAvailability, updateProductStockStatusAction } from "@/app
 import { AddProductDialog } from "./add-product-dialog"
 import { EditProductDialog } from "./edit-product-dialog"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 type Product = {
   id: string
@@ -30,6 +31,7 @@ type Product = {
 }
 
 export function ProductTable({ products, categories }: { products: Product[], categories: { id: string; name: string }[] }) {
+  const router = useRouter()
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
@@ -42,6 +44,7 @@ export function ProductTable({ products, categories }: { products: Product[], ca
       toast.error(result.error)
     } else {
       toast.success(current ? "Product marked as Inactive" : "Product marked as Active")
+      router.refresh()
     }
     setIsPending(false)
   }
@@ -53,6 +56,7 @@ export function ProductTable({ products, categories }: { products: Product[], ca
       toast.error(result.error)
     } else {
       toast.success("Stock status updated successfully")
+      router.refresh()
     }
     setIsPending(false)
   }

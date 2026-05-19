@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { saveRiderReceiptAction } from '@/app/actions/rider-receipt';
+import { Switch } from '@/components/ui/switch';
 
 export function RiderClient({ 
   initialOrders = [], 
@@ -171,9 +172,9 @@ export function RiderClient({
     await supabase.from('riders').update({ status: statusStr }).eq('id', currentUser.id);
 
     if (newStatus) {
-      toast.success("🟢 You are now Online and ready for live dispatches!");
+      toast.success("🟢 Delivery notices enabled! You are now online.");
     } else {
-      toast.warning("🔴 Work Stopped for Now. You will not be assigned new deliveries.");
+      toast.warning("🔴 Delivery notices disabled. You are now offline.");
     }
   };
 
@@ -228,34 +229,26 @@ export function RiderClient({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            onClick={handleToggleWorkStatus}
-            className={`rounded-full px-4 py-1.5 h-9 border text-xs font-bold uppercase tracking-wider transition-all shadow-sm ${
-              isWorking 
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
-                : 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 animate-pulse'
-            }`}
-          >
-            {isWorking ? (
-              <><PauseCircle className="w-4 h-4 mr-1.5 text-emerald-400" /> Online</>
-            ) : (
-              <><PlayCircle className="w-4 h-4 mr-1.5 text-amber-400" /> Stop Work</>
-            )}
-          </Button>
+        <div className="flex items-center gap-3 bg-slate-800/80 px-3.5 py-1.5 rounded-2xl border border-white/5 shadow-inner">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+            {isWorking ? "Notices On" : "Notices Off"}
+          </span>
+          <Switch 
+            checked={isWorking}
+            onCheckedChange={handleToggleWorkStatus}
+          />
         </div>
       </header>
 
       {/* Main Content Container */}
       <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
-        {/* Stop Work Notice Banner */}
+        {/* Notices Off Banner */}
         {!isWorking && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-amber-300 text-xs font-bold flex items-center gap-3 shadow-sm animate-fadeIn">
-            <AlertCircle className="w-5 h-5 shrink-0 text-amber-400 animate-bounce" />
+          <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 text-rose-300 text-xs font-bold flex items-center gap-3 shadow-sm animate-fadeIn">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 animate-bounce" />
             <div>
-              <p className="text-white font-extrabold mb-0.5">Work Stopped for Now (Emergency / Break)</p>
-              <p className="text-slate-400 font-medium">You will not be assigned new deliveries. Click "Stop Work" above to resume.</p>
+              <p className="text-white font-extrabold mb-0.5">Delivery Notices Disabled</p>
+              <p className="text-slate-400 font-medium">You will not receive any delivery requests. Toggle notices to ON to receive orders.</p>
             </div>
           </div>
         )}

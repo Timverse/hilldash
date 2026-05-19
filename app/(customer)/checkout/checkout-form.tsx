@@ -148,7 +148,7 @@ export function CheckoutForm({
   useEffect(() => {
     const activeAddr = getActiveAddress()
     if (activeAddr) {
-      if (!addressText && activeAddr.address) {
+      if (!addressText && activeAddr.address && !activeAddr.title?.startsWith("GPS")) {
         setAddressText(activeAddr.address)
       }
       setLocation({ lat: activeAddr.lat, lng: activeAddr.lng })
@@ -214,7 +214,7 @@ export function CheckoutForm({
           // Save permanently to Zustand store without overwriting custom address text
           addAddress({
             title: `GPS (${preciseLocality})`,
-            address: addressText || `${preciseLocality}, Jowai, Meghalaya`,
+            address: addressText || "",
             locality: preciseLocality,
             lat,
             lng,
@@ -227,7 +227,7 @@ export function CheckoutForm({
           setLocationName(preciseLocality)
           addAddress({
             title: `GPS (${preciseLocality})`,
-            address: addressText || `${preciseLocality}, Jowai, Meghalaya`,
+            address: addressText || "",
             locality: preciseLocality,
             lat,
             lng,

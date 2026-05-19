@@ -12,6 +12,7 @@ type Product = {
   name: string
   price: number
   stock: number
+  stock_status?: string | null
   image_url: string
 }
 
@@ -19,13 +20,16 @@ export function ProductActions({ product }: { product: Product }) {
   const { addItem } = useCartStore()
   const [quantity, setQuantity] = useState(1)
 
+  const isOutOfStock = product.stock_status ? product.stock_status === 'out_of_stock' : product.stock <= 0
+  const maxStockAllowed = product.stock_status === 'in_stock' ? 99 : (product.stock_status === 'limited_stock' ? Math.max(product.stock, 5) : product.stock)
+
   const handleAdd = () => {
-    if (product.stock <= 0) {
+    if (isOutOfStock) {
       toast.error("Out of stock")
       return
     }
-    if (quantity > product.stock) {
-      toast.error(`Only ${product.stock} units available`)
+    if (quantity > maxStockAllowed) {
+      toast.error(`Only ${maxStockAllowed} units available`)
       return
     }
     
@@ -35,16 +39,16 @@ export function ProductActions({ product }: { product: Product }) {
       price: product.price,
       quantity: quantity,
       image_url: product.image_url,
-      max_stock: product.stock
+      max_stock: maxStockAllowed
     })
     toast.success(`${quantity}x ${product.name} added to basket`)
   }
 
   const increment = () => {
-    if (quantity < product.stock) {
+    if (quantity < maxStockAllowed) {
       setQuantity(q => q + 1)
     } else {
-      toast.error("Maximum stock reached")
+      toast.error("Maximum limit reached")
     }
   }
 
@@ -72,7 +76,7 @@ export function ProductActions({ product }: { product: Product }) {
           size="icon" 
           className="h-12 w-12 rounded-xl text-slate-600 hover:bg-white hover:text-primary transition-all disabled:opacity-30" 
           onClick={increment}
-          disabled={quantity >= product.stock}
+          disabled={quantity >= maxStockAllowed}
         >
           <Plus className="w-5 h-5" />
         </Button>
@@ -80,7 +84,7 @@ export function ProductActions({ product }: { product: Product }) {
       <Button 
         className="flex-1 w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-xl shadow-primary/20 gap-3 transition-all active:scale-[0.98] disabled:opacity-50"
         onClick={handleAdd}
-        disabled={product.stock <= 0}
+        disabled={isOutOfStock}
       >
         <ShoppingCart className="w-6 h-6" />
         Add to Basket

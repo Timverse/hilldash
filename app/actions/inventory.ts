@@ -178,6 +178,7 @@ export async function editProductAction(id: string, formData: FormData) {
 
   revalidatePath('/dashboard/products', 'page')
   revalidatePath('/dashboard', 'page')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 
@@ -194,6 +195,7 @@ export async function toggleProductAvailability(productId: string, currentStatus
   }
 
   revalidatePath('/dashboard/products', 'page')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 
@@ -215,6 +217,7 @@ export async function updateProductStockStatusAction(productId: string, stockSta
   }
 
   revalidatePath('/dashboard/products', 'page')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 

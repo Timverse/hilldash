@@ -24,7 +24,8 @@ export function ProductCard({ product }: { product: Product }) {
   const cartItem = items.find(item => item.product_id === product.id)
   const quantityInCart = cartItem?.quantity || 0
 
-  const isOutOfStock = product.stock_status === 'out_of_stock' || product.stock <= 0
+  const isOutOfStock = product.stock_status ? product.stock_status === 'out_of_stock' : product.stock <= 0
+  const maxStockAllowed = product.stock_status === 'in_stock' ? 99 : (product.stock_status === 'limited_stock' ? Math.max(product.stock, 5) : product.stock)
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -39,7 +40,7 @@ export function ProductCard({ product }: { product: Product }) {
       price: product.price,
       quantity: 1,
       image_url: product.image_url,
-      max_stock: product.stock
+      max_stock: maxStockAllowed
     })
     toast.success(`${product.name} added to cart`)
   }
@@ -47,8 +48,8 @@ export function ProductCard({ product }: { product: Product }) {
   const increment = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (quantityInCart >= product.stock) {
-      toast.error("Maximum stock reached")
+    if (quantityInCart >= maxStockAllowed) {
+      toast.error("Maximum limit reached")
       return
     }
     updateQuantity(product.id, quantityInCart + 1)
