@@ -121,3 +121,13 @@ ALTER TABLE public.products
 ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT '1 kg',
 ADD COLUMN IF NOT EXISTS stock_status TEXT DEFAULT 'in_stock';
 ```
+
+---
+
+### 🏍️ 8. Fix Rider Role Enum Value
+Run this snippet once in your Supabase SQL Editor if you get a profile creation error about `invalid input value for enum user_role: "rider"`. This adds the `'rider'` role to the enum type.
+
+```sql
+ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'rider';
+```
+
